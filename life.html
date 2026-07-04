@@ -573,7 +573,6 @@ if (urlParam) {
     orientation: 'portrait'
   };
   const blob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
-  document.getElementById('manifest-link').href = URL.createObjectURL(blob);
 }
 if (urlParam === 'life') {
   currentTab = 0;
