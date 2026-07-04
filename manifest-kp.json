@@ -1,0 +1,10 @@
+{
+  "name": "CRM KP Service",
+  "short_name": "KP Service",
+  "description": "Gestione guasti FWA - KP Service",
+  "start_url": "/crm-interacta/kp.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#e30613",
+  "orientation": "portrait"
+}

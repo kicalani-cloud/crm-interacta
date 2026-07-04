@@ -1,0 +1,10 @@
+{
+  "name": "CRM Life Mobile",
+  "short_name": "Life Mobile",
+  "description": "Gestione guasti FWA - Life Mobile",
+  "start_url": "/crm-interacta/life.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#e30613",
+  "orientation": "portrait"
+}
