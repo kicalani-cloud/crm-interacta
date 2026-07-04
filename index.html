@@ -471,10 +471,10 @@ setInterval(() => {
 const urlParam = new URLSearchParams(window.location.search).get('azienda');
 if (urlParam === 'life') {
   currentTab = 0;
-  document.querySelector('.tabs').style.display = 'none'; // nasconde il tab switcher
+  document.querySelector('.tabs').innerHTML = '<div class="tab active">🔵 Life Mobile</div>';
 } else if (urlParam === 'kp') {
   currentTab = 1;
-  document.querySelector('.tabs').style.display = 'none';
+  document.querySelector('.tabs').innerHTML = '<div class="tab active">🟢 KP Service</div>';
 }
 
 // Caricamento iniziale
