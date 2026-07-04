@@ -208,6 +208,27 @@
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
+  .province-bar {
+    background: white;
+    padding: 8px 24px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--border);
+  }
+  .pbtn {
+    padding: 5px 14px;
+    border-radius: 16px;
+    border: 2px solid var(--border);
+    background: white;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .pbtn.active { background: var(--dark); color: white; border-color: var(--dark); }
+  .pbtn:hover:not(.active) { border-color: var(--dark); }
+
   @media (max-width: 900px) {
     .board { grid-template-columns: 1fr; }
   }
@@ -230,6 +251,8 @@
     <span>🔄</span> Aggiorna
   </button>
 </div>
+
+<div class="province-bar" id="province-bar"></div>
 
 <!-- Modal Sospendi -->
 <div class="modal-overlay" id="modal-overlay">
@@ -268,16 +291,57 @@ const GH_TOKEN = ['ghp_NdVG92IWfd3w1','F1pndRVC8PM8g4Y7k1m1LPl'].join('');
 const GH_ACTIONS_TOKEN = GH_TOKEN;
 
 const SOURCES = [
-  { repo: 'kicalani-cloud/interacta-bot',  label: 'Life Mobile' },
-  { repo: 'kicalani-cloud/interacta-bot2', label: 'KP Service' }
+  { repo: 'kicalani-cloud/interacta-bot',  label: 'Life Mobile', province: ['RN','RA','FC'] },
+  { repo: 'kicalani-cloud/interacta-bot2', label: 'KP Service',  province: ['PU','BO','FE','MO'] }
 ];
 
 let currentTab = 0;
+let currentProv = 'TUTTE';
+let cachedData = null;
 
 function switchTab(idx) {
   currentTab = idx;
+  currentProv = 'TUTTE';
+  cachedData = null;
   document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', i === idx));
   loadData();
+}
+
+function buildProvinceBar(province) {
+  const bar = document.getElementById('province-bar');
+  const all = ['TUTTE', ...province];
+  bar.innerHTML = all.map(p =>
+    `<button class="pbtn ${p === currentProv ? 'active' : ''}" onclick="filterProv('${p}')">${p}</button>`
+  ).join('');
+}
+
+function filterProv(prov) {
+  currentProv = prov;
+  document.querySelectorAll('.pbtn').forEach(b => b.classList.toggle('active', b.textContent === prov));
+  renderData(cachedData);
+}
+
+function renderData(data) {
+  if (!data) return;
+  const filter = p => currentProv === 'TUTTE' || (p.centrale || '') === currentProv;
+
+  const assegnati   = (data.posts       || []).filter(filter);
+  const sospesi     = (data.sospesi     || []).filter(filter);
+  const lavorazione = (data.lavorazione || []).filter(filter);
+
+  document.getElementById('last-update').textContent = data.last_update ? `Aggiornato: ${data.last_update}` : '';
+
+  const colA = document.getElementById('col-assegnato');
+  colA.innerHTML = assegnati.length ? assegnati.map(p => card(p, 'assegnato')).join('') : '<div class="empty">Nessun ticket assegnato</div>';
+  document.getElementById('cnt-assegnato').textContent = assegnati.length;
+
+  const colS = document.getElementById('col-sospeso');
+  colS.innerHTML = sospesi.length ? sospesi.map(p => card(p, 'sospeso')).join('') : '<div class="empty">Nessun ticket sospeso</div>';
+  document.getElementById('cnt-sospeso').textContent = sospesi.length;
+
+  const colL = document.getElementById('col-lavorazione');
+  colL.innerHTML = lavorazione.length ? lavorazione.map(p => card(p, 'lavorazione')).join('') : '<div class="empty">Nessun ticket in lavorazione</div>';
+  document.getElementById('cnt-lavorazione').textContent = lavorazione.length;
 }
 
 async function ghRead(repo, file) {
@@ -366,32 +430,10 @@ async function loadData() {
   });
 
   const src = SOURCES[currentTab];
+  buildProvinceBar(src.province);
   const data = await ghRead(src.repo, 'interacta_data.json');
-
-  const assegnati   = data ? (data.posts      || []) : [];
-  const sospesi     = data ? (data.sospesi    || []) : [];
-  const lavorazione = data ? (data.lavorazione|| []) : [];
-  const lastUpdate  = data ? data.last_update : null;
-
-  document.getElementById('last-update').textContent = lastUpdate ? `Aggiornato: ${lastUpdate}` : '';
-
-  const colA = document.getElementById('col-assegnato');
-  colA.innerHTML = assegnati.length
-    ? assegnati.map(p => card(p, 'assegnato')).join('')
-    : '<div class="empty">Nessun ticket assegnato</div>';
-  document.getElementById('cnt-assegnato').textContent = assegnati.length;
-
-  const colS = document.getElementById('col-sospeso');
-  colS.innerHTML = sospesi.length
-    ? sospesi.map(p => card(p, 'sospeso')).join('')
-    : '<div class="empty">Nessun ticket sospeso</div>';
-  document.getElementById('cnt-sospeso').textContent = sospesi.length;
-
-  const colL = document.getElementById('col-lavorazione');
-  colL.innerHTML = lavorazione.length
-    ? lavorazione.map(p => card(p, 'lavorazione')).join('')
-    : '<div class="empty">Nessun ticket in lavorazione</div>';
-  document.getElementById('cnt-lavorazione').textContent = lavorazione.length;
+  cachedData = data;
+  renderData(data);
 }
 
 async function aggiorna() {
