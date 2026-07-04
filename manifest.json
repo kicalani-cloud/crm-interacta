@@ -1,0 +1,17 @@
+{
+  "name": "CRM FWA WindTre",
+  "short_name": "CRM FWA",
+  "description": "Gestione guasti FWA WindTre",
+  "start_url": "/crm-interacta/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#e30613",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://raw.githubusercontent.com/kicalani-cloud/crm-interacta/main/icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
