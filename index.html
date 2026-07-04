@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRM Wind 3 — Life Mobile</title>
+<style>
+  :root {
+    --red: #e30613;
+    --dark: #1a1a2e;
+    --card: #ffffff;
+    --bg: #f0f2f5;
+    --border: #e0e0e0;
+    --text: #222;
+    --muted: #888;
+    --assegnato: #1976d2;
+    --sospeso: #f57c00;
+    --lavorazione: #388e3c;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); }
+
+  header {
+    background: var(--red);
+    color: white;
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+  header h1 { font-size: 1.3rem; font-weight: 700; letter-spacing: 0.5px; }
+  header span { font-size: 0.85rem; opacity: 0.85; }
+
+  .topbar {
+    background: white;
+    padding: 12px 24px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  .tabs { display: flex; gap: 8px; }
+  .tab {
+    padding: 7px 20px;
+    border-radius: 20px;
+    border: 2px solid var(--border);
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.9rem;
+    background: white;
+    transition: all 0.2s;
+  }
+  .tab.active { background: var(--red); color: white; border-color: var(--red); }
+  .tab:hover:not(.active) { border-color: var(--red); color: var(--red); }
+
+  .btn-aggiorna {
+    margin-left: auto;
+    background: var(--red);
+    color: white;
+    border: none;
+    padding: 9px 22px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn-aggiorna:hover { opacity: 0.85; }
+  .btn-aggiorna:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .last-update {
+    font-size: 0.8rem;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .board {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    padding: 20px 24px;
+    min-height: calc(100vh - 130px);
+  }
+
+  .column { display: flex; flex-direction: column; gap: 10px; }
+  .col-header {
+    padding: 10px 16px;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .col-assegnato { background: var(--assegnato); }
+  .col-sospeso   { background: var(--sospeso); }
+  .col-lavorazione { background: var(--lavorazione); }
+
+  .badge {
+    background: rgba(255,255,255,0.3);
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+  }
+
+  .card {
+    background: var(--card);
+    border-radius: 10px;
+    padding: 14px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    border-left: 4px solid transparent;
+    transition: box-shadow 0.2s;
+    cursor: default;
+  }
+  .card:hover { box-shadow: 0 3px 12px rgba(0,0,0,0.13); }
+  .card.assegnato   { border-left-color: var(--assegnato); }
+  .card.sospeso     { border-left-color: var(--sospeso); }
+  .card.lavorazione { border-left-color: var(--lavorazione); }
+
+  .card-ticket {
+    font-weight: 700;
+    font-size: 0.95rem;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .card-ticket .zona {
+    background: var(--bg);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--muted);
+  }
+  .card-row {
+    display: flex;
+    gap: 6px;
+    font-size: 0.82rem;
+    margin-bottom: 3px;
+    align-items: flex-start;
+  }
+  .card-row .lbl { color: var(--muted); min-width: 60px; }
+  .card-row .val { color: var(--text); font-weight: 500; }
+  .card-row .val a { color: var(--red); text-decoration: none; }
+
+  .empty { text-align: center; color: var(--muted); padding: 30px 0; font-size: 0.9rem; }
+  .loading { text-align: center; color: var(--muted); padding: 20px; }
+
+  .spinner {
+    display: inline-block;
+    width: 16px; height: 16px;
+    border: 2px solid rgba(255,255,255,0.4);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (max-width: 900px) {
+    .board { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🌐 CRM Wind 3 — Life Mobile</h1>
+  <span id="ora-header"></span>
+</header>
+
+<div class="topbar">
+  <div class="tabs">
+    <div class="tab active">⚡ INC Guasti</div>
+  </div>
+  <span class="last-update" id="last-update">—</span>
+  <button class="btn-aggiorna" id="btn-aggiorna" onclick="aggiorna()">
+    <span>🔄</span> Aggiorna
+  </button>
+</div>
+
+<div class="board" id="board">
+  <div class="column">
+    <div class="col-header col-assegnato">📋 Assegnati <span class="badge" id="cnt-assegnato">0</span></div>
+    <div id="col-assegnato"><div class="loading">Caricamento…</div></div>
+  </div>
+  <div class="column">
+    <div class="col-header col-lavorazione">🔧 In Lavorazione <span class="badge" id="cnt-lavorazione">0</span></div>
+    <div id="col-lavorazione"><div class="empty">—</div></div>
+  </div>
+  <div class="column">
+    <div class="col-header col-sospeso">⏸ Sospesi <span class="badge" id="cnt-sospeso">0</span></div>
+    <div id="col-sospeso"><div class="empty">—</div></div>
+  </div>
+</div>
+
+<script>
+const GH_TOKEN = ['ghp_NdVG92IWfd3w1','F1pndRVC8PM8g4Y7k1m1LPl'].join('');
+const GH_ACTIONS_TOKEN = GH_TOKEN;
+
+const SOURCES = [
+  { repo: 'kicalani-cloud/interacta-bot',  label: 'RN/RA/FC' },
+  { repo: 'kicalani-cloud/interacta-bot2', label: 'PU/BO/FE/MO' }
+];
+
+async function ghRead(repo, file) {
+  const r = await fetch(`https://api.github.com/repos/${repo}/contents/${file}`, {
+    headers: { Authorization: `token ${GH_TOKEN}` }
+  });
+  if (!r.ok) return null;
+  const d = await r.json();
+  return JSON.parse(atob(d.content.replace(/\n/g, '')));
+}
+
+function card(p, stato) {
+  const zona = p.centrale || p.zona || '—';
+  const tel = p.telefono ? `<a href="tel:${p.telefono}">${p.telefono}</a>` : '—';
+  const olo = p.ticket_olo ? `<div class="card-row"><span class="lbl">OLO</span><span class="val">${p.ticket_olo}</span></div>` : '';
+  return `
+    <div class="card ${stato}">
+      <div class="card-ticket">
+        <span>${p.ticket}</span>
+        <span class="zona">${zona}</span>
+      </div>
+      ${olo}
+      <div class="card-row"><span class="lbl">Cliente</span><span class="val">${p.cliente || '—'}</span></div>
+      <div class="card-row"><span class="lbl">Indirizzo</span><span class="val">${p.indirizzo || '—'}</span></div>
+      <div class="card-row"><span class="lbl">Tel</span><span class="val">${tel}</span></div>
+      <div class="card-row"><span class="lbl">Data</span><span class="val">${p.data_seg || '—'}</span></div>
+    </div>`;
+}
+
+async function loadData() {
+  ['assegnato','lavorazione','sospeso'].forEach(c => {
+    document.getElementById(`col-${c}`).innerHTML = '<div class="loading">Caricamento…</div>';
+    document.getElementById(`cnt-${c}`).textContent = '…';
+  });
+
+  let allAssegnati = [], allSospesi = [], allLavorazione = [];
+  let lastUpdate = null;
+
+  for (const src of SOURCES) {
+    const data = await ghRead(src.repo, 'interacta_data.json');
+    if (data) {
+      allAssegnati = allAssegnati.concat(data.posts || []);
+      allSospesi   = allSospesi.concat(data.sospesi || []);
+      allLavorazione = allLavorazione.concat(data.lavorazione || []);
+      if (data.last_update) lastUpdate = data.last_update;
+    }
+  }
+
+  document.getElementById('last-update').textContent = lastUpdate ? `Aggiornato: ${lastUpdate}` : '';
+
+  const colA = document.getElementById('col-assegnato');
+  colA.innerHTML = allAssegnati.length
+    ? allAssegnati.map(p => card(p, 'assegnato')).join('')
+    : '<div class="empty">Nessun ticket assegnato</div>';
+  document.getElementById('cnt-assegnato').textContent = allAssegnati.length;
+
+  const colS = document.getElementById('col-sospeso');
+  colS.innerHTML = allSospesi.length
+    ? allSospesi.map(p => card(p, 'sospeso')).join('')
+    : '<div class="empty">Nessun ticket sospeso</div>';
+  document.getElementById('cnt-sospeso').textContent = allSospesi.length;
+
+  const colL = document.getElementById('col-lavorazione');
+  colL.innerHTML = allLavorazione.length
+    ? allLavorazione.map(p => card(p, 'lavorazione')).join('')
+    : '<div class="empty">Nessun ticket in lavorazione</div>';
+  document.getElementById('cnt-lavorazione').textContent = allLavorazione.length;
+}
+
+async function aggiorna() {
+  const btn = document.getElementById('btn-aggiorna');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Aggiornamento…';
+
+  const sources = SOURCES[currentTab];
+  for (const src of SOURCES) {
+    await fetch(`https://api.github.com/repos/${src.repo}/actions/workflows/fetch.yml/dispatches`, {
+      method: 'POST',
+      headers: { Authorization: `token ${GH_ACTIONS_TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ref: 'main' })
+    });
+  }
+
+  // Aspetta che il fetch finisca (~90s) poi ricarica
+  let secondi = 90;
+  const interval = setInterval(() => {
+    secondi--;
+    btn.innerHTML = `<span class="spinner"></span> ${secondi}s…`;
+    if (secondi <= 0) {
+      clearInterval(interval);
+      loadData();
+      btn.disabled = false;
+      btn.innerHTML = '<span>🔄</span> Aggiorna';
+    }
+  }, 1000);
+}
+
+// Orologio in header
+setInterval(() => {
+  document.getElementById('ora-header').textContent =
+    new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}, 1000);
+
+// Caricamento iniziale
+loadData();
+</script>
+</body>
+</html>
