@@ -177,7 +177,8 @@
 
 <div class="topbar">
   <div class="tabs">
-    <div class="tab active">⚡ INC Guasti</div>
+    <div class="tab active" onclick="switchTab(0)">🔵 Life Mobile</div>
+    <div class="tab" onclick="switchTab(1)">🟢 KP Service</div>
   </div>
   <span class="last-update" id="last-update">—</span>
   <button class="btn-aggiorna" id="btn-aggiorna" onclick="aggiorna()">
@@ -205,9 +206,17 @@ const GH_TOKEN = ['ghp_NdVG92IWfd3w1','F1pndRVC8PM8g4Y7k1m1LPl'].join('');
 const GH_ACTIONS_TOKEN = GH_TOKEN;
 
 const SOURCES = [
-  { repo: 'kicalani-cloud/interacta-bot',  label: 'RN/RA/FC' },
-  { repo: 'kicalani-cloud/interacta-bot2', label: 'PU/BO/FE/MO' }
+  { repo: 'kicalani-cloud/interacta-bot',  label: 'Life Mobile' },
+  { repo: 'kicalani-cloud/interacta-bot2', label: 'KP Service' }
 ];
+
+let currentTab = 0;
+
+function switchTab(idx) {
+  currentTab = idx;
+  document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', i === idx));
+  loadData();
+}
 
 async function ghRead(repo, file) {
   const r = await fetch(`https://api.github.com/repos/${repo}/contents/${file}`, {
@@ -242,38 +251,33 @@ async function loadData() {
     document.getElementById(`cnt-${c}`).textContent = '…';
   });
 
-  let allAssegnati = [], allSospesi = [], allLavorazione = [];
-  let lastUpdate = null;
+  const src = SOURCES[currentTab];
+  const data = await ghRead(src.repo, 'interacta_data.json');
 
-  for (const src of SOURCES) {
-    const data = await ghRead(src.repo, 'interacta_data.json');
-    if (data) {
-      allAssegnati = allAssegnati.concat(data.posts || []);
-      allSospesi   = allSospesi.concat(data.sospesi || []);
-      allLavorazione = allLavorazione.concat(data.lavorazione || []);
-      if (data.last_update) lastUpdate = data.last_update;
-    }
-  }
+  const assegnati   = data ? (data.posts      || []) : [];
+  const sospesi     = data ? (data.sospesi    || []) : [];
+  const lavorazione = data ? (data.lavorazione|| []) : [];
+  const lastUpdate  = data ? data.last_update : null;
 
   document.getElementById('last-update').textContent = lastUpdate ? `Aggiornato: ${lastUpdate}` : '';
 
   const colA = document.getElementById('col-assegnato');
-  colA.innerHTML = allAssegnati.length
-    ? allAssegnati.map(p => card(p, 'assegnato')).join('')
+  colA.innerHTML = assegnati.length
+    ? assegnati.map(p => card(p, 'assegnato')).join('')
     : '<div class="empty">Nessun ticket assegnato</div>';
-  document.getElementById('cnt-assegnato').textContent = allAssegnati.length;
+  document.getElementById('cnt-assegnato').textContent = assegnati.length;
 
   const colS = document.getElementById('col-sospeso');
-  colS.innerHTML = allSospesi.length
-    ? allSospesi.map(p => card(p, 'sospeso')).join('')
+  colS.innerHTML = sospesi.length
+    ? sospesi.map(p => card(p, 'sospeso')).join('')
     : '<div class="empty">Nessun ticket sospeso</div>';
-  document.getElementById('cnt-sospeso').textContent = allSospesi.length;
+  document.getElementById('cnt-sospeso').textContent = sospesi.length;
 
   const colL = document.getElementById('col-lavorazione');
-  colL.innerHTML = allLavorazione.length
-    ? allLavorazione.map(p => card(p, 'lavorazione')).join('')
+  colL.innerHTML = lavorazione.length
+    ? lavorazione.map(p => card(p, 'lavorazione')).join('')
     : '<div class="empty">Nessun ticket in lavorazione</div>';
-  document.getElementById('cnt-lavorazione').textContent = allLavorazione.length;
+  document.getElementById('cnt-lavorazione').textContent = lavorazione.length;
 }
 
 async function aggiorna() {
@@ -281,16 +285,13 @@ async function aggiorna() {
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span> Aggiornamento…';
 
-  const sources = SOURCES[currentTab];
-  for (const src of SOURCES) {
-    await fetch(`https://api.github.com/repos/${src.repo}/actions/workflows/fetch.yml/dispatches`, {
-      method: 'POST',
-      headers: { Authorization: `token ${GH_ACTIONS_TOKEN}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ref: 'main' })
-    });
-  }
+  const src = SOURCES[currentTab];
+  await fetch(`https://api.github.com/repos/${src.repo}/actions/workflows/fetch.yml/dispatches`, {
+    method: 'POST',
+    headers: { Authorization: `token ${GH_ACTIONS_TOKEN}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ref: 'main' })
+  });
 
-  // Aspetta che il fetch finisca (~90s) poi ricarica
   let secondi = 90;
   const interval = setInterval(() => {
     secondi--;
