@@ -472,9 +472,13 @@ const urlParam = new URLSearchParams(window.location.search).get('azienda');
 if (urlParam === 'life') {
   currentTab = 0;
   document.querySelector('.tabs').innerHTML = '<div class="tab active">🔵 Life Mobile</div>';
+  document.getElementById('col-sospeso').closest('.column').style.display = 'none';
+  document.getElementById('col-lavorazione').closest('.column').style.display = 'none';
 } else if (urlParam === 'kp') {
   currentTab = 1;
   document.querySelector('.tabs').innerHTML = '<div class="tab active">🟢 KP Service</div>';
+  document.getElementById('col-sospeso').closest('.column').style.display = 'none';
+  document.getElementById('col-lavorazione').closest('.column').style.display = 'none';
 }
 
 // Caricamento iniziale
