@@ -467,6 +467,16 @@ setInterval(() => {
     new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }, 1000);
 
+// Gestione link diretto ?azienda=life o ?azienda=kp
+const urlParam = new URLSearchParams(window.location.search).get('azienda');
+if (urlParam === 'life') {
+  currentTab = 0;
+  document.querySelector('.tabs').style.display = 'none'; // nasconde il tab switcher
+} else if (urlParam === 'kp') {
+  currentTab = 1;
+  document.querySelector('.tabs').style.display = 'none';
+}
+
 // Caricamento iniziale
 loadData();
 </script>
