@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="CRM FWA">
 <meta name="theme-color" content="#e30613">
-<link rel="manifest" href="manifest.json">
+<link rel="manifest" id="manifest-link" href="manifest.json">
 <title>CRM FWA WindTre</title>
 <style>
   :root {
@@ -559,6 +559,22 @@ setInterval(() => {
 
 // Gestione link diretto ?azienda=life o ?azienda=kp
 const urlParam = new URLSearchParams(window.location.search).get('azienda');
+
+// Manifest dinamico per PWA tecnici
+if (urlParam) {
+  const nomi = { life: 'CRM Life Mobile', kp: 'CRM KP Service' };
+  const manifest = {
+    name: nomi[urlParam] || 'CRM FWA WindTre',
+    short_name: urlParam === 'life' ? 'Life Mobile' : 'KP Service',
+    start_url: `/crm-interacta/?azienda=${urlParam}`,
+    display: 'standalone',
+    background_color: '#ffffff',
+    theme_color: '#e30613',
+    orientation: 'portrait'
+  };
+  const blob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+  document.getElementById('manifest-link').href = URL.createObjectURL(blob);
+}
 if (urlParam === 'life') {
   currentTab = 0;
   document.querySelector('.tabs').innerHTML = '<div class="tab active">🔵 Life Mobile</div>';
