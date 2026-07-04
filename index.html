@@ -298,6 +298,52 @@ const SOURCES = [
 let currentTab = 0;
 let currentProv = 'TUTTE';
 let cachedData = null;
+let userLat = null, userLon = null;
+const geoCache = {};
+
+function haversine(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+async function geocode(indirizzo) {
+  if (!indirizzo) return null;
+  if (geoCache[indirizzo]) return geoCache[indirizzo];
+  try {
+    const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(indirizzo + ', Italia')}&format=json&limit=1`, {
+      headers: { 'Accept-Language': 'it' }
+    });
+    const d = await r.json();
+    if (d[0]) {
+      const coords = { lat: parseFloat(d[0].lat), lon: parseFloat(d[0].lon) };
+      geoCache[indirizzo] = coords;
+      return coords;
+    }
+  } catch(e) {}
+  return null;
+}
+
+async function sortByDistance(tickets) {
+  if (!userLat) return tickets;
+  const withCoords = await Promise.all(tickets.map(async p => {
+    const coords = await geocode(p.indirizzo);
+    const dist = coords ? haversine(userLat, userLon, coords.lat, coords.lon) : 9999;
+    return { ...p, _dist: dist };
+  }));
+  return withCoords.sort((a, b) => a._dist - b._dist);
+}
+
+function getLocation() {
+  if (!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(pos => {
+    userLat = pos.coords.latitude;
+    userLon = pos.coords.longitude;
+    if (cachedData) renderData(cachedData);
+  });
+}
 
 function switchTab(idx) {
   currentTab = idx;
@@ -321,15 +367,20 @@ function filterProv(prov) {
   renderData(cachedData);
 }
 
-function renderData(data) {
+async function renderData(data) {
   if (!data) return;
   const filter = p => currentProv === 'TUTTE' || (p.centrale || '') === currentProv;
 
-  const assegnati   = (data.posts       || []).filter(filter);
+  let assegnati   = (data.posts       || []).filter(filter);
   const sospesi     = (data.sospesi     || []).filter(filter);
   const lavorazione = (data.lavorazione || []).filter(filter);
 
   document.getElementById('last-update').textContent = data.last_update ? `Aggiornato: ${data.last_update}` : '';
+
+  // Ordina assegnati per distanza se il tecnico ha condiviso la posizione
+  if (userLat && urlParam) {
+    assegnati = await sortByDistance(assegnati);
+  }
 
   const colA = document.getElementById('col-assegnato');
   colA.innerHTML = assegnati.length ? assegnati.map(p => card(p, 'assegnato')).join('') : '<div class="empty">Nessun ticket assegnato</div>';
@@ -357,6 +408,7 @@ function card(p, stato) {
   const zona = p.centrale || p.zona || '—';
   const tel = p.telefono ? `<a href="tel:${p.telefono}">${p.telefono}</a>` : '—';
   const olo = p.ticket_olo ? `<div class="card-row"><span class="lbl">OLO</span><span class="val">${p.ticket_olo}</span></div>` : '';
+  const distLabel = (p._dist && p._dist < 9999) ? `<span style="font-size:0.75rem;color:var(--muted);font-weight:600;">📍 ${p._dist.toFixed(1)} km</span>` : '';
   const btnSospendi = stato === 'assegnato'
     ? `<button class="btn-sospendi" onclick="openModal('${p.ticket}')">⏸ Sospendi</button>`
     : '';
@@ -366,6 +418,7 @@ function card(p, stato) {
         <span>${p.ticket}</span>
         <span class="zona">${zona}</span>
       </div>
+      ${distLabel}
       ${olo}
       <div class="card-row"><span class="lbl">Cliente</span><span class="val">${p.cliente || '—'}</span></div>
       <div class="card-row"><span class="lbl">Indirizzo</span><span class="val">${p.indirizzo || '—'}</span></div>
@@ -474,11 +527,13 @@ if (urlParam === 'life') {
   document.querySelector('.tabs').innerHTML = '<div class="tab active">🔵 Life Mobile</div>';
   document.getElementById('col-sospeso').closest('.column').style.display = 'none';
   document.getElementById('col-lavorazione').closest('.column').style.display = 'none';
+  getLocation();
 } else if (urlParam === 'kp') {
   currentTab = 1;
   document.querySelector('.tabs').innerHTML = '<div class="tab active">🟢 KP Service</div>';
   document.getElementById('col-sospeso').closest('.column').style.display = 'none';
   document.getElementById('col-lavorazione').closest('.column').style.display = 'none';
+  getLocation();
 }
 
 // Caricamento iniziale
