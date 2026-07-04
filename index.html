@@ -495,17 +495,37 @@ async function aggiorna() {
   btn.innerHTML = '<span class="spinner"></span> Aggiornamento…';
 
   const src = SOURCES[currentTab];
+
+  // Salva il last_update attuale prima di triggerare
+  const dataPrima = await ghRead(src.repo, 'interacta_data.json');
+  const updatePrima = dataPrima ? dataPrima.last_update : null;
+
   await fetch(`https://api.github.com/repos/${src.repo}/actions/workflows/fetch.yml/dispatches`, {
     method: 'POST',
     headers: { Authorization: `token ${GH_ACTIONS_TOKEN}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ ref: 'main' })
   });
 
-  let secondi = 90;
-  const interval = setInterval(() => {
-    secondi--;
+  let secondi = 0;
+  const interval = setInterval(async () => {
+    secondi++;
     btn.innerHTML = `<span class="spinner"></span> ${secondi}s…`;
-    if (secondi <= 0) {
+
+    // Ogni 10 secondi controlla se i dati sono cambiati
+    if (secondi % 10 === 0) {
+      const dataNuova = await ghRead(src.repo, 'interacta_data.json');
+      if (dataNuova && dataNuova.last_update !== updatePrima) {
+        clearInterval(interval);
+        cachedData = dataNuova;
+        renderData(dataNuova);
+        btn.disabled = false;
+        btn.innerHTML = '<span>🔄</span> Aggiorna';
+        return;
+      }
+    }
+
+    // Fallback: dopo 120 secondi ricarica comunque
+    if (secondi >= 120) {
       clearInterval(interval);
       loadData();
       btn.disabled = false;
