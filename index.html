@@ -368,8 +368,8 @@
     <div class="tab" onclick="switchTab(1)">🟢 KP Service</div>
   </div>
   <span class="last-update" id="last-update">—</span>
-  <button class="btn-copia" onclick="openCopia()">📋 Copia Assegnati</button>
-  <button class="btn-copia" style="background:var(--sospeso);" onclick="openCopiaS()">📋 Copia Sospesi</button>
+  <button class="btn-copia titolare-only" onclick="openCopia()">📋 Copia Assegnati</button>
+  <button class="btn-copia titolare-only" style="background:var(--sospeso);" onclick="openCopiaS()">📋 Copia Sospesi</button>
   <button class="btn-aggiorna" id="btn-aggiorna" onclick="aggiorna()">
     <span>🔄</span> Aggiorna
   </button>
@@ -911,17 +911,35 @@ if (urlParam === 'life') {
 }
 
 // ── Login / Logout ──────────────────────────────────────────────
-const PWD = 'windtre';
+const PWD_TECNICO  = 'windtre';
+const PWD_TITOLARE = 'kica';
 
 function checkLogin() {
-  return localStorage.getItem('crm_logged') === '1';
+  return !!localStorage.getItem('crm_logged');
+}
+
+function isTitolare() {
+  return localStorage.getItem('crm_logged') === 'titolare';
+}
+
+function applyRole() {
+  const show = isTitolare();
+  document.querySelectorAll('.titolare-only').forEach(el => {
+    el.style.display = show ? '' : 'none';
+  });
 }
 
 function login() {
   const val = document.getElementById('pwd-input').value;
-  if (val === PWD) {
+  if (val === PWD_TITOLARE) {
+    localStorage.setItem('crm_logged', 'titolare');
+    document.getElementById('login-screen').classList.add('hidden');
+    applyRole();
+    loadData();
+  } else if (val === PWD_TECNICO) {
     localStorage.setItem('crm_logged', '1');
     document.getElementById('login-screen').classList.add('hidden');
+    applyRole();
     loadData();
   } else {
     document.getElementById('login-error').style.display = 'block';
@@ -939,6 +957,7 @@ function esci() {
 // Controlla login all'avvio
 if (checkLogin()) {
   document.getElementById('login-screen').classList.add('hidden');
+  applyRole();
   loadData();
 }
 // ────────────────────────────────────────────────────────────────
