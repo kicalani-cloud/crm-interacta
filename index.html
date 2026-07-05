@@ -368,7 +368,8 @@
     <div class="tab" onclick="switchTab(1)">🟢 KP Service</div>
   </div>
   <span class="last-update" id="last-update">—</span>
-  <button class="btn-copia" onclick="openCopia()">📋 Copia</button>
+  <button class="btn-copia" onclick="openCopia()">📋 Copia Assegnati</button>
+  <button class="btn-copia" style="background:var(--sospeso);" onclick="openCopiaS()">📋 Copia Sospesi</button>
   <button class="btn-aggiorna" id="btn-aggiorna" onclick="aggiorna()">
     <span>🔄</span> Aggiorna
   </button>
@@ -390,10 +391,24 @@
   </div>
 </div>
 
+<!-- Modal Copia Sospesi -->
+<div class="modal-overlay" id="modal-copia-sos-overlay">
+  <div class="modal modal-copia">
+    <h3 style="color:var(--sospeso);">📋 Copia lista sospesi</h3>
+    <div style="font-size:0.85rem;color:var(--muted);margin-bottom:8px;">Seleziona le province da includere:</div>
+    <div class="prov-checks" id="prov-checks-sos"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeCopiaS()">Annulla</button>
+      <button class="btn-confirm" style="background:var(--sospeso);" onclick="copiaTabellaS()">📋 Copia</button>
+    </div>
+    <div id="copied-msg-sos" class="copied-msg" style="display:none;">✅ Copiato! Incolla nella mail.</div>
+  </div>
+</div>
+
 <!-- Modal Riprendi tutti in lavorazione -->
 <div class="modal-overlay" id="modal-riprendi-overlay">
   <div class="modal">
-    <h3 style="color:var(--lavorazione);">▶ Riprendi in lavorazione</h3>
+    <h3 style="color:var(--lavorazione);">🔓 Desospendi</h3>
     <div id="modal-riprendi-desc" style="font-size:0.9rem;margin-bottom:8px;"></div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeRiprendi()">Annulla</button>
@@ -430,7 +445,7 @@
     <div id="col-lavorazione"><div class="empty">—</div></div>
   </div>
   <div class="column">
-    <div class="col-header col-sospeso">⏸ Sospesi <span class="badge" id="cnt-sospeso">0</span><button class="btn-tutti-lav" onclick="confermaRiprendiTutti()">▶ Tutti in Lav.</button></div>
+    <div class="col-header col-sospeso">⏸ Sospesi <span class="badge" id="cnt-sospeso">0</span><button class="btn-tutti-lav" onclick="confermaRiprendiTutti()">🔓 Desospendi Tutti</button></div>
     <div id="col-sospeso"><div class="empty">—</div></div>
   </div>
 </div>
@@ -562,7 +577,7 @@ function card(p, stato) {
     ? `<button class="btn-sospendi" onclick="openModal('${p.ticket}')">⏸ Sospendi</button>`
     : '';
   const btnRiprendi = stato === 'sospeso'
-    ? `<button class="btn-riprendi" onclick="openRiprendi('${p.ticket}')">▶ In Lavorazione</button>`
+    ? `<button class="btn-riprendi" onclick="openRiprendi('${p.ticket}')">🔓 Desospendi</button>`
     : '';
   return `
     <div class="card ${stato}">
@@ -641,6 +656,57 @@ function copiaTabella() {
     navigator.clipboard.writeText(testo);
     document.getElementById('copied-msg').style.display = 'block';
     setTimeout(closeCopia, 2000);
+  });
+}
+// ── Copia lista sospesi (Nome/OLO/vuoto) ────────────────────────
+function openCopiaS() {
+  const src = SOURCES[currentTab];
+  const checks = document.getElementById('prov-checks-sos');
+  checks.innerHTML = src.province.map(p => `
+    <label><input type="checkbox" value="${p}" checked> ${p}</label>
+  `).join('');
+  document.getElementById('copied-msg-sos').style.display = 'none';
+  document.getElementById('modal-copia-sos-overlay').classList.add('open');
+}
+
+function closeCopiaS() {
+  document.getElementById('modal-copia-sos-overlay').classList.remove('open');
+}
+
+function copiaTabellaS() {
+  const selezionate = [...document.querySelectorAll('#prov-checks-sos input:checked')].map(c => c.value);
+  const sospesi = cachedData ? (cachedData.sospesi || []) : [];
+  const righe = sospesi.filter(p => selezionate.includes(p.centrale || ''));
+
+  const html = `
+<table style="border-collapse:collapse;font-size:14px;font-family:Arial,sans-serif;width:100%;">
+  <thead>
+    <tr style="background:#e65100;color:white;">
+      <th style="padding:8px 12px;border:1px solid #ccc;text-align:left;">Nome Cognome</th>
+      <th style="padding:8px 12px;border:1px solid #ccc;text-align:left;">OLO</th>
+      <th style="padding:8px 12px;border:1px solid #ccc;text-align:left;min-width:180px;">Note</th>
+    </tr>
+  </thead>
+  <tbody>
+    ${righe.map((p, i) => `
+    <tr style="background:${i % 2 === 0 ? '#ffffff' : '#fff3e0'};">
+      <td style="padding:8px 12px;border:1px solid #ccc;">${p.cliente || '—'}</td>
+      <td style="padding:8px 12px;border:1px solid #ccc;">${p.ticket_olo || '—'}</td>
+      <td style="padding:8px 12px;border:1px solid #ccc;">&nbsp;</td>
+    </tr>`).join('')}
+  </tbody>
+</table>`;
+
+  const blob = new Blob([html], { type: 'text/html' });
+  const item = new ClipboardItem({ 'text/html': blob });
+  navigator.clipboard.write([item]).then(() => {
+    document.getElementById('copied-msg-sos').style.display = 'block';
+    setTimeout(closeCopiaS, 2000);
+  }).catch(() => {
+    const testo = righe.map(p => `${p.cliente} | ${p.ticket_olo} | `).join('\n');
+    navigator.clipboard.writeText(testo);
+    document.getElementById('copied-msg-sos').style.display = 'block';
+    setTimeout(closeCopiaS, 2000);
   });
 }
 // ────────────────────────────────────────────────────────────────
