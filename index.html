@@ -369,7 +369,7 @@
   </div>
   <span class="last-update" id="last-update">—</span>
   <button class="btn-copia titolare-only" onclick="openCopia()">📋 Copia Assegnati</button>
-  <button class="btn-copia titolare-only" style="background:var(--sospeso);" onclick="openCopiaS()">📋 Copia Sospesi</button>
+  <button class="btn-copia titolare-only" style="background:var(--lavorazione);" onclick="openCopiaS()">📋 Copia Lavorazione</button>
   <button class="btn-aggiorna" id="btn-aggiorna" onclick="aggiorna()">
     <span>🔄</span> Aggiorna
   </button>
@@ -394,7 +394,7 @@
 <!-- Modal Copia Sospesi -->
 <div class="modal-overlay" id="modal-copia-sos-overlay">
   <div class="modal modal-copia">
-    <h3 style="color:var(--sospeso);">📋 Copia lista sospesi</h3>
+    <h3 style="color:var(--lavorazione);">📋 Copia In Lavorazione</h3>
     <div style="font-size:0.85rem;color:var(--muted);margin-bottom:8px;">Seleziona le province da includere:</div>
     <div class="prov-checks" id="prov-checks-sos"></div>
     <div class="modal-actions">
@@ -675,8 +675,8 @@ function closeCopiaS() {
 
 function copiaTabellaS() {
   const selezionate = [...document.querySelectorAll('#prov-checks-sos input:checked')].map(c => c.value);
-  const sospesi = cachedData ? (cachedData.sospesi || []) : [];
-  const righe = sospesi.filter(p => selezionate.includes(p.centrale || ''));
+  const lavorazione = cachedData ? (cachedData.lavorazione || []) : [];
+  const righe = lavorazione.filter(p => selezionate.includes(p.centrale || ''));
 
   const html = `
 <table style="border-collapse:collapse;font-size:14px;font-family:Arial,sans-serif;width:100%;">
