@@ -214,6 +214,45 @@
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
+  #login-screen {
+    position: fixed; inset: 0;
+    background: var(--dark);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+  }
+  #login-screen.hidden { display: none; }
+  .login-box {
+    background: white;
+    border-radius: 16px;
+    padding: 40px 36px;
+    width: 320px;
+    text-align: center;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.4);
+  }
+  .login-box h2 { color: var(--red); font-size: 1.3rem; margin-bottom: 6px; }
+  .login-box p { color: var(--muted); font-size: 0.85rem; margin-bottom: 24px; }
+  .login-box input {
+    width: 100%; padding: 12px; border: 2px solid var(--border);
+    border-radius: 10px; font-size: 1rem; text-align: center;
+    letter-spacing: 2px; margin-bottom: 12px;
+  }
+  .login-box input:focus { border-color: var(--red); outline: none; }
+  .login-box button {
+    width: 100%; padding: 12px; background: var(--red); color: white;
+    border: none; border-radius: 10px; font-size: 1rem; font-weight: 700;
+    cursor: pointer;
+  }
+  .login-error { color: red; font-size: 0.85rem; margin-top: 8px; display: none; }
+  .btn-esci {
+    background: transparent; color: rgba(255,255,255,0.8);
+    border: 1px solid rgba(255,255,255,0.4);
+    padding: 5px 14px; border-radius: 14px;
+    font-size: 0.8rem; cursor: pointer;
+  }
+  .btn-esci:hover { background: rgba(255,255,255,0.15); }
+
   .province-bar {
     background: white;
     padding: 8px 24px;
@@ -235,6 +274,27 @@
   .pbtn.active { background: var(--dark); color: white; border-color: var(--dark); }
   .pbtn:hover:not(.active) { border-color: var(--dark); }
 
+  .btn-copia {
+    background: #1976d2;
+    color: white;
+    border: none;
+    padding: 9px 18px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn-copia:hover { opacity: 0.85; }
+
+  .modal-copia { max-width: 380px; }
+  .modal-copia h3 { color: #1976d2; margin-bottom: 14px; }
+  .prov-checks { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0 18px; }
+  .prov-checks label { display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 0.9rem; cursor: pointer; }
+  .copied-msg { color: var(--lavorazione); font-weight: 600; text-align: center; margin-top: 10px; }
+
   @media (max-width: 900px) {
     .board { grid-template-columns: 1fr; padding: 12px; gap: 12px; }
     header { padding: 10px 16px; }
@@ -253,9 +313,23 @@
 </head>
 <body>
 
+<!-- Schermata login -->
+<div id="login-screen">
+  <div class="login-box">
+    <h2>🌐 CRM FWA WindTre</h2>
+    <p>Inserisci la password per accedere</p>
+    <input type="password" id="pwd-input" placeholder="Password" onkeydown="if(event.key==='Enter') login()">
+    <button onclick="login()">Entra</button>
+    <div class="login-error" id="login-error">Password errata</div>
+  </div>
+</div>
+
 <header>
   <h1>🌐 CRM FWA WindTre</h1>
-  <span id="ora-header"></span>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <span id="ora-header"></span>
+    <button class="btn-esci" onclick="esci()">Esci</button>
+  </div>
 </header>
 
 <div class="topbar">
@@ -264,12 +338,27 @@
     <div class="tab" onclick="switchTab(1)">🟢 KP Service</div>
   </div>
   <span class="last-update" id="last-update">—</span>
+  <button class="btn-copia" onclick="openCopia()">📋 Copia</button>
   <button class="btn-aggiorna" id="btn-aggiorna" onclick="aggiorna()">
     <span>🔄</span> Aggiorna
   </button>
 </div>
 
 <div class="province-bar" id="province-bar"></div>
+
+<!-- Modal Copia Email -->
+<div class="modal-overlay" id="modal-copia-overlay">
+  <div class="modal modal-copia">
+    <h3>📋 Copia tabella email</h3>
+    <div style="font-size:0.85rem;color:var(--muted);margin-bottom:8px;">Seleziona le province da includere:</div>
+    <div class="prov-checks" id="prov-checks"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeCopia()">Annulla</button>
+      <button class="btn-confirm" style="background:#1976d2;" onclick="copiaTabella()">📋 Copia</button>
+    </div>
+    <div id="copied-msg" class="copied-msg" style="display:none;">✅ Copiato! Incolla nella mail.</div>
+  </div>
+</div>
 
 <!-- Modal Sospendi -->
 <div class="modal-overlay" id="modal-overlay">
@@ -445,6 +534,70 @@ function card(p, stato) {
     </div>`;
 }
 
+// ── Copia tabella email ──────────────────────────────────────────
+function openCopia() {
+  const src = SOURCES[currentTab];
+  const checks = document.getElementById('prov-checks');
+  checks.innerHTML = src.province.map(p => `
+    <label><input type="checkbox" value="${p}" checked> ${p}</label>
+  `).join('');
+  document.getElementById('copied-msg').style.display = 'none';
+  document.getElementById('modal-copia-overlay').classList.add('open');
+}
+
+function closeCopia() {
+  document.getElementById('modal-copia-overlay').classList.remove('open');
+}
+
+function copiaTabella() {
+  const selezionate = [...document.querySelectorAll('#prov-checks input:checked')].map(c => c.value);
+  const tutti = cachedData ? (cachedData.posts || []) : [];
+  const righe = tutti.filter(p => selezionate.includes(p.centrale || ''));
+
+  const html = `
+<table style="border-collapse:collapse;font-size:14px;font-family:Arial,sans-serif;width:100%;">
+  <thead>
+    <tr style="background:#e30613;color:white;">
+      <th style="padding:8px 12px;border:1px solid #ccc;text-align:left;">INC</th>
+      <th style="padding:8px 12px;border:1px solid #ccc;text-align:left;">Nome Cognome</th>
+      <th style="padding:8px 12px;border:1px solid #ccc;text-align:left;">Indirizzo Città</th>
+      <th style="padding:8px 12px;border:1px solid #ccc;text-align:left;">Provincia</th>
+      <th style="padding:8px 12px;border:1px solid #ccc;text-align:left;">Cellulare</th>
+      <th style="padding:8px 12px;border:1px solid #ccc;text-align:left;">Data Guasto</th>
+      <th style="padding:8px 12px;border:1px solid #ccc;text-align:left;">OLO</th>
+    </tr>
+  </thead>
+  <tbody>
+    ${righe.map((p, i) => `
+    <tr style="background:${i % 2 === 0 ? '#ffffff' : '#f5f5f5'};">
+      <td style="padding:8px 12px;border:1px solid #ccc;">${p.ticket || '—'}</td>
+      <td style="padding:8px 12px;border:1px solid #ccc;">${p.cliente || '—'}</td>
+      <td style="padding:8px 12px;border:1px solid #ccc;">${p.indirizzo || '—'}</td>
+      <td style="padding:8px 12px;border:1px solid #ccc;">${p.centrale || '—'}</td>
+      <td style="padding:8px 12px;border:1px solid #ccc;">${p.telefono || '—'}</td>
+      <td style="padding:8px 12px;border:1px solid #ccc;">${p.data_seg || '—'}</td>
+      <td style="padding:8px 12px;border:1px solid #ccc;">${p.ticket_olo || '—'}</td>
+    </tr>`).join('')}
+  </tbody>
+</table>`;
+
+  const blob = new Blob([html], { type: 'text/html' });
+  const item = new ClipboardItem({ 'text/html': blob });
+  navigator.clipboard.write([item]).then(() => {
+    document.getElementById('copied-msg').style.display = 'block';
+    setTimeout(closeCopia, 2000);
+  }).catch(() => {
+    // Fallback testo semplice
+    const testo = righe.map(p =>
+      `${p.ticket} | ${p.cliente} | ${p.indirizzo} | ${p.centrale || '—'} | ${p.telefono} | ${p.data_seg} | ${p.ticket_olo}`
+    ).join('\n');
+    navigator.clipboard.writeText(testo);
+    document.getElementById('copied-msg').style.display = 'block';
+    setTimeout(closeCopia, 2000);
+  });
+}
+// ────────────────────────────────────────────────────────────────
+
 let modalTicket = null;
 
 function openModal(ticket) {
@@ -588,8 +741,40 @@ if (urlParam === 'life') {
   getLocation();
 }
 
-// Caricamento iniziale
-loadData();
+// ── Login / Logout ──────────────────────────────────────────────
+const PWD = 'windtre';
+
+function checkLogin() {
+  const salvato = localStorage.getItem('crm_login_day');
+  const oggi = new Date().toDateString();
+  return salvato === oggi;
+}
+
+function login() {
+  const val = document.getElementById('pwd-input').value;
+  if (val === PWD) {
+    localStorage.setItem('crm_login_day', new Date().toDateString());
+    document.getElementById('login-screen').classList.add('hidden');
+    loadData();
+  } else {
+    document.getElementById('login-error').style.display = 'block';
+    document.getElementById('pwd-input').value = '';
+  }
+}
+
+function esci() {
+  localStorage.removeItem('crm_login_day');
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('pwd-input').value = '';
+  document.getElementById('login-error').style.display = 'none';
+}
+
+// Controlla login all'avvio
+if (checkLogin()) {
+  document.getElementById('login-screen').classList.add('hidden');
+  loadData();
+}
+// ────────────────────────────────────────────────────────────────
 </script>
 </body>
 </html>

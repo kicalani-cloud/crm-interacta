@@ -214,6 +214,45 @@
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
+  #login-screen {
+    position: fixed; inset: 0;
+    background: var(--dark);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+  }
+  #login-screen.hidden { display: none; }
+  .login-box {
+    background: white;
+    border-radius: 16px;
+    padding: 40px 36px;
+    width: 320px;
+    text-align: center;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.4);
+  }
+  .login-box h2 { color: var(--red); font-size: 1.3rem; margin-bottom: 6px; }
+  .login-box p { color: var(--muted); font-size: 0.85rem; margin-bottom: 24px; }
+  .login-box input {
+    width: 100%; padding: 12px; border: 2px solid var(--border);
+    border-radius: 10px; font-size: 1rem; text-align: center;
+    letter-spacing: 2px; margin-bottom: 12px;
+  }
+  .login-box input:focus { border-color: var(--red); outline: none; }
+  .login-box button {
+    width: 100%; padding: 12px; background: var(--red); color: white;
+    border: none; border-radius: 10px; font-size: 1rem; font-weight: 700;
+    cursor: pointer;
+  }
+  .login-error { color: red; font-size: 0.85rem; margin-top: 8px; display: none; }
+  .btn-esci {
+    background: transparent; color: rgba(255,255,255,0.8);
+    border: 1px solid rgba(255,255,255,0.4);
+    padding: 5px 14px; border-radius: 14px;
+    font-size: 0.8rem; cursor: pointer;
+  }
+  .btn-esci:hover { background: rgba(255,255,255,0.15); }
+
   .province-bar {
     background: white;
     padding: 8px 24px;
@@ -274,9 +313,23 @@
 </head>
 <body>
 
+<!-- Schermata login -->
+<div id="login-screen">
+  <div class="login-box">
+    <h2>🌐 CRM FWA WindTre</h2>
+    <p>Inserisci la password per accedere</p>
+    <input type="password" id="pwd-input" placeholder="Password" onkeydown="if(event.key==='Enter') login()">
+    <button onclick="login()">Entra</button>
+    <div class="login-error" id="login-error">Password errata</div>
+  </div>
+</div>
+
 <header>
   <h1>🌐 CRM FWA WindTre</h1>
-  <span id="ora-header"></span>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <span id="ora-header"></span>
+    <button class="btn-esci" onclick="esci()">Esci</button>
+  </div>
 </header>
 
 <div class="topbar">
@@ -689,8 +742,40 @@ if (urlParam === 'life') {
   getLocation();
 }
 
-// Caricamento iniziale
-loadData();
+// ── Login / Logout ──────────────────────────────────────────────
+const PWD = 'windtre';
+
+function checkLogin() {
+  const salvato = localStorage.getItem('crm_login_day');
+  const oggi = new Date().toDateString();
+  return salvato === oggi;
+}
+
+function login() {
+  const val = document.getElementById('pwd-input').value;
+  if (val === PWD) {
+    localStorage.setItem('crm_login_day', new Date().toDateString());
+    document.getElementById('login-screen').classList.add('hidden');
+    loadData();
+  } else {
+    document.getElementById('login-error').style.display = 'block';
+    document.getElementById('pwd-input').value = '';
+  }
+}
+
+function esci() {
+  localStorage.removeItem('crm_login_day');
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('pwd-input').value = '';
+  document.getElementById('login-error').style.display = 'none';
+}
+
+// Controlla login all'avvio
+if (checkLogin()) {
+  document.getElementById('login-screen').classList.add('hidden');
+  loadData();
+}
+// ────────────────────────────────────────────────────────────────
 </script>
 </body>
 </html>
