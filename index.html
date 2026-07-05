@@ -746,15 +746,13 @@ if (urlParam === 'life') {
 const PWD = 'windtre';
 
 function checkLogin() {
-  const salvato = localStorage.getItem('crm_login_day');
-  const oggi = new Date().toDateString();
-  return salvato === oggi;
+  return localStorage.getItem('crm_logged') === '1';
 }
 
 function login() {
   const val = document.getElementById('pwd-input').value;
   if (val === PWD) {
-    localStorage.setItem('crm_login_day', new Date().toDateString());
+    localStorage.setItem('crm_logged', '1');
     document.getElementById('login-screen').classList.add('hidden');
     loadData();
   } else {
@@ -764,7 +762,7 @@ function login() {
 }
 
 function esci() {
-  localStorage.removeItem('crm_login_day');
+  localStorage.removeItem('crm_logged');
   document.getElementById('login-screen').classList.remove('hidden');
   document.getElementById('pwd-input').value = '';
   document.getElementById('login-error').style.display = 'none';
