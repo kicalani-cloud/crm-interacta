@@ -502,12 +502,13 @@ function copiaTabella() {
   const righe = tutti.filter(p => selezionate.includes(p.centrale || ''));
 
   const html = `
-<table style="border-collapse:collapse;font-size:16px;font-family:Arial,sans-serif;width:100%;">
+<table style="border-collapse:collapse;font-size:14px;font-family:Arial,sans-serif;width:100%;">
   <thead>
     <tr style="background:#e30613;color:white;">
       <th style="padding:8px 12px;border:1px solid #ccc;text-align:left;">INC</th>
       <th style="padding:8px 12px;border:1px solid #ccc;text-align:left;">Nome Cognome</th>
       <th style="padding:8px 12px;border:1px solid #ccc;text-align:left;">Indirizzo Città</th>
+      <th style="padding:8px 12px;border:1px solid #ccc;text-align:left;">Provincia</th>
       <th style="padding:8px 12px;border:1px solid #ccc;text-align:left;">Cellulare</th>
       <th style="padding:8px 12px;border:1px solid #ccc;text-align:left;">Data Guasto</th>
       <th style="padding:8px 12px;border:1px solid #ccc;text-align:left;">OLO</th>
@@ -519,6 +520,7 @@ function copiaTabella() {
       <td style="padding:8px 12px;border:1px solid #ccc;">${p.ticket || '—'}</td>
       <td style="padding:8px 12px;border:1px solid #ccc;">${p.cliente || '—'}</td>
       <td style="padding:8px 12px;border:1px solid #ccc;">${p.indirizzo || '—'}</td>
+      <td style="padding:8px 12px;border:1px solid #ccc;">${p.centrale || '—'}</td>
       <td style="padding:8px 12px;border:1px solid #ccc;">${p.telefono || '—'}</td>
       <td style="padding:8px 12px;border:1px solid #ccc;">${p.data_seg || '—'}</td>
       <td style="padding:8px 12px;border:1px solid #ccc;">${p.ticket_olo || '—'}</td>
