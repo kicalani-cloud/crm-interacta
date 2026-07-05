@@ -536,7 +536,7 @@ function copiaTabella() {
   }).catch(() => {
     // Fallback testo semplice
     const testo = righe.map(p =>
-      `${p.ticket} | ${p.cliente} | ${p.indirizzo} | ${p.telefono} | ${p.data_seg} | ${p.ticket_olo}`
+      `${p.ticket} | ${p.cliente} | ${p.indirizzo} | ${p.centrale || '—'} | ${p.telefono} | ${p.data_seg} | ${p.ticket_olo}`
     ).join('\n');
     navigator.clipboard.writeText(testo);
     document.getElementById('copied-msg').style.display = 'block';
