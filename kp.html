@@ -410,22 +410,27 @@ async function sortByDistance(tickets) {
 }
 
 function getLocation() {
-  if (!navigator.geolocation) return;
+  if (!navigator.geolocation) {
+    const btn = document.getElementById('btn-geo');
+    if (btn) { btn.textContent = '📍 N/D'; btn.style.background = '#757575'; }
+    return;
+  }
   navigator.geolocation.getCurrentPosition(pos => {
     userLat = pos.coords.latitude;
     userLon = pos.coords.longitude;
     const btn = document.getElementById('btn-geo');
-    if (btn) { btn.textContent = '📍 Attiva'; btn.style.background = '#2e7d32'; }
+    if (btn) { btn.textContent = '📍 OK'; btn.style.background = '#2e7d32'; }
     if (cachedData) renderData(cachedData);
-  }, () => {
+  }, err => {
     const btn = document.getElementById('btn-geo');
     if (btn) { btn.textContent = '📍 Negata'; btn.style.background = '#b71c1c'; }
-  });
+    console.warn('Geo errore:', err.code, err.message);
+  }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 });
 }
 
 function attivaGeo() {
   const btn = document.getElementById('btn-geo');
-  btn.textContent = '📍…';
+  if (btn) { btn.textContent = '📍…'; btn.style.background = '#1565c0'; }
   getLocation();
 }
 
