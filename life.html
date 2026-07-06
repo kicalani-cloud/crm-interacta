@@ -420,7 +420,7 @@ function getLocation() {
     userLon = pos.coords.longitude;
     const btn = document.getElementById('btn-geo');
     if (btn) { btn.textContent = '📍 OK'; btn.style.background = '#2e7d32'; }
-    if (cachedData) renderData(cachedData);
+    if (cachedData) loadData();
   }, err => {
     const btn = document.getElementById('btn-geo');
     if (btn) { btn.textContent = '📍 Negata'; btn.style.background = '#b71c1c'; }
