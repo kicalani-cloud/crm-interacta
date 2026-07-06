@@ -656,6 +656,7 @@ function login() {
   if (val === PWD) {
     localStorage.setItem('crm_logged', '1');
     document.getElementById('login-screen').classList.add('hidden');
+    getLocation();
     loadData();
   } else {
     document.getElementById('login-error').style.display = 'block';
@@ -673,6 +674,7 @@ function esci() {
 // Controlla login all'avvio
 if (checkLogin()) {
   document.getElementById('login-screen').classList.add('hidden');
+  getLocation();
   loadData();
 }
 // ────────────────────────────────────────────────────────────────
