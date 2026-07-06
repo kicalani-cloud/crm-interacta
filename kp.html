@@ -299,7 +299,7 @@
   <div class="login-box">
     <h2>🌐 CRM FWA WindTre</h2>
     <p>Inserisci la password per accedere</p>
-    <input type="password" id="pwd-input" placeholder="Password" onkeydown="if(event.key==='Enter') login()">
+    <input type="password" id="pwd-input" placeholder="Password" autocapitalize="none" autocorrect="off" onkeydown="if(event.key==='Enter') login()">
     <button onclick="login()">Entra</button>
     <div class="login-error" id="login-error">Password errata</div>
   </div>
@@ -652,7 +652,7 @@ function checkLogin() {
 }
 
 function login() {
-  const val = document.getElementById('pwd-input').value;
+  const val = document.getElementById('pwd-input').value.toLowerCase().trim();
   if (val === PWD) {
     localStorage.setItem('crm_logged', '1');
     document.getElementById('login-screen').classList.add('hidden');
