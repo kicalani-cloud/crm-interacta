@@ -961,9 +961,15 @@ if (isTitolare()) {
   applyRole();
   loadData();
 } else if (checkLogin()) {
-  // Era loggato come tecnico: resetta e chiedi password titolare
   localStorage.removeItem('crm_logged');
 }
+
+// Auto-refresh ogni 15 minuti dalle 08:00 alle 18:00
+setInterval(() => {
+  if (!isTitolare()) return;
+  const h = new Date().getHours();
+  if (h >= 8 && h < 18) loadData();
+}, 15 * 60 * 1000);
 // ────────────────────────────────────────────────────────────────
 </script>
 </body>
