@@ -923,9 +923,9 @@ function isTitolare() {
 }
 
 function applyRole() {
-  const show = isTitolare();
+  const tit = isTitolare();
   document.querySelectorAll('.titolare-only').forEach(el => {
-    el.style.display = show ? '' : 'none';
+    el.style.display = tit ? '' : 'none';
   });
 }
 
@@ -937,11 +937,12 @@ function login() {
     applyRole();
     loadData();
   } else if (val === PWD_TECNICO) {
-    localStorage.setItem('crm_logged', '1');
-    document.getElementById('login-screen').classList.add('hidden');
-    applyRole();
-    loadData();
+    // Su index.html i tecnici non possono accedere — usare life.html o kp.html
+    document.getElementById('login-error').textContent = '⚠️ Usa life.html o kp.html';
+    document.getElementById('login-error').style.display = 'block';
+    document.getElementById('pwd-input').value = '';
   } else {
+    document.getElementById('login-error').textContent = 'Password errata.';
     document.getElementById('login-error').style.display = 'block';
     document.getElementById('pwd-input').value = '';
   }
@@ -954,11 +955,14 @@ function esci() {
   document.getElementById('login-error').style.display = 'none';
 }
 
-// Controlla login all'avvio
-if (checkLogin()) {
+// Controlla login all'avvio — su index.html solo titolare
+if (isTitolare()) {
   document.getElementById('login-screen').classList.add('hidden');
   applyRole();
   loadData();
+} else if (checkLogin()) {
+  // Era loggato come tecnico: resetta e chiedi password titolare
+  localStorage.removeItem('crm_logged');
 }
 // ────────────────────────────────────────────────────────────────
 </script>
