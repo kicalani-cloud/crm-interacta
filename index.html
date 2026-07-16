@@ -568,6 +568,11 @@ async function ghRead(repo, file) {
   return JSON.parse(atob(d.content.replace(/\n/g, '')));
 }
 
+let _kpNotesTitolare = null;
+async function loadKpNotesTitolare() {
+  _kpNotesTitolare = await ghRead('kicalani-cloud/interacta-bot2', 'kp_sospesi_notes.json') || {};
+}
+
 function card(p, stato) {
   const zona = p.centrale || p.zona || '—';
   const tel = p.telefono ? `<a href="tel:${p.telefono}">${p.telefono}</a>` : '—';
@@ -579,6 +584,13 @@ function card(p, stato) {
   const btnRiprendi = stato === 'sospeso'
     ? `<button class="btn-riprendi" onclick="openRiprendi('${p.ticket}')">🔓 Desospendi</button>`
     : '';
+  const kpInfo = stato === 'sospeso' && _kpNotesTitolare ? (() => {
+    const n = _kpNotesTitolare[p.ticket];
+    if (!n) return '';
+    const infoHtml = n.at ? `<div style="background:#fff3e0;border-left:3px solid var(--sospeso);padding:6px 10px;border-radius:6px;margin-top:8px;font-size:0.78rem;color:#555;"><div><strong>⏸ Sospeso il:</strong> ${n.at}</div><div><strong>📅 App.to:</strong> ${n.data} alle ${n.ora}</div></div>` : '';
+    const noteHtml = n.note ? `<div style="background:#f5f5f5;border-left:3px solid #999;padding:6px 10px;border-radius:6px;margin-top:6px;font-size:0.78rem;color:#444;white-space:pre-wrap;"><strong>📝 Note tecnico:</strong><br>${n.note}</div>` : '';
+    return infoHtml + noteHtml;
+  })() : '';
   return `
     <div class="card ${stato}">
       <div class="card-ticket">
@@ -591,6 +603,7 @@ function card(p, stato) {
       <div class="card-row"><span class="lbl">Indirizzo</span><span class="val">${p.indirizzo || '—'}</span></div>
       <div class="card-row"><span class="lbl">Tel</span><span class="val">${tel}</span></div>
       <div class="card-row"><span class="lbl">Data</span><span class="val">${p.data_seg || '—'}</span></div>
+      ${kpInfo}
       ${btnSospendi}
       ${btnRiprendi}
     </div>`;
@@ -822,7 +835,9 @@ async function loadData() {
 
   const src = SOURCES[currentTab];
   buildProvinceBar(src.province);
-  const data = await ghRead(src.repo, 'interacta_data.json');
+  const fetches = [ghRead(src.repo, 'interacta_data.json')];
+  if (src.label === 'KP Service') fetches.push(loadKpNotesTitolare());
+  const [data] = await Promise.all(fetches);
   cachedData = data;
   renderData(data);
 }

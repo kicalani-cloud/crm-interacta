@@ -556,6 +556,40 @@ async function ghRead(repo, file) {
   return JSON.parse(atob(d.content.replace(/\n/g, '')));
 }
 
+async function ghWrite(repo, file, content) {
+  // Leggi sha attuale
+  const r0 = await fetch(`https://api.github.com/repos/${repo}/contents/${file}`, {
+    headers: { Authorization: `token ${GH_TOKEN}` }
+  });
+  const sha = r0.ok ? (await r0.json()).sha : undefined;
+  const body = { message: 'update ' + file, content: btoa(unescape(encodeURIComponent(JSON.stringify(content, null, 2)))), ...(sha ? {sha} : {}) };
+  await fetch(`https://api.github.com/repos/${repo}/contents/${file}`, {
+    method: 'PUT',
+    headers: { Authorization: `token ${GH_TOKEN}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+}
+
+const KP_NOTES_REPO = 'kicalani-cloud/interacta-bot2';
+const KP_NOTES_FILE = 'kp_sospesi_notes.json';
+let _kpNotes = null;
+
+async function loadKpNotes() {
+  if (_kpNotes) return _kpNotes;
+  _kpNotes = await ghRead(KP_NOTES_REPO, KP_NOTES_FILE) || {};
+  return _kpNotes;
+}
+
+async function saveKpNote(ticket, fields) {
+  const notes = await loadKpNotes();
+  notes[ticket] = { ...(notes[ticket] || {}), ...fields };
+  _kpNotes = notes;
+  // Salva anche in localStorage per accesso istantaneo
+  localStorage.setItem('kp_sospeso_info_' + ticket, JSON.stringify(notes[ticket]));
+  localStorage.setItem('kp_note_' + ticket, notes[ticket].note || '');
+  await ghWrite(KP_NOTES_REPO, KP_NOTES_FILE, notes);
+}
+
 function card(p, stato) {
   const zona = p.centrale || p.zona || '—';
   const tel = p.telefono ? `<a href="tel:${p.telefono}">${p.telefono}</a>` : '—';
@@ -565,13 +599,14 @@ function card(p, stato) {
     ? `<button class="btn-sospendi" onclick="openModal('${p.ticket}')">⏸ Sospendi</button>`
     : '';
   const noteField = stato === 'sospeso' ? (() => {
-    const info = JSON.parse(localStorage.getItem('kp_sospeso_info_' + p.ticket) || 'null');
-    const infoHtml = info ? `
+    const gh   = (_kpNotes || {})[p.ticket] || {};
+    const info = gh.at ? gh : JSON.parse(localStorage.getItem('kp_sospeso_info_' + p.ticket) || 'null');
+    const infoHtml = info && info.at ? `
       <div style="background:#fff3e0;border-left:3px solid var(--sospeso);padding:6px 10px;border-radius:6px;margin-top:8px;font-size:0.78rem;color:#555;">
         <div><strong>⏸ Sospeso il:</strong> ${info.at}</div>
         <div><strong>📅 App.to:</strong> ${info.data} alle ${info.ora}</div>
       </div>` : '';
-    const saved = localStorage.getItem('kp_note_' + p.ticket) || '';
+    const saved = gh.note ?? (localStorage.getItem('kp_note_' + p.ticket) || '');
     return `${infoHtml}<textarea class="note-sospeso" id="note-${p.ticket}" placeholder="✏️ Note sul lavoro svolto…" onchange="saveNote('${p.ticket}')" oninput="saveNote('${p.ticket}')">${saved}</textarea><div class="note-saved" id="note-saved-${p.ticket}">✓ Salvato</div>`;
   })() : '';
   return `
@@ -595,12 +630,13 @@ function card(p, stato) {
 const _noteTimers = {};
 function saveNote(ticket) {
   clearTimeout(_noteTimers[ticket]);
-  _noteTimers[ticket] = setTimeout(() => {
+  _noteTimers[ticket] = setTimeout(async () => {
     const val = document.getElementById('note-' + ticket)?.value || '';
     localStorage.setItem('kp_note_' + ticket, val);
+    await saveKpNote(ticket, {note: val});
     const el = document.getElementById('note-saved-' + ticket);
     if (el) { el.style.display = 'block'; setTimeout(() => el.style.display = 'none', 1500); }
-  }, 600);
+  }, 800);
 }
 
 let modalTicket = null;
@@ -642,11 +678,10 @@ async function conferma() {
   });
 
   if (r.status === 204) {
-    // Salva data/ora sospensione in localStorage per mostrarla nella card
-    localStorage.setItem('kp_sospeso_info_' + modalTicket, JSON.stringify({
-      data, ora,
-      at: new Date().toLocaleString('it-IT', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})
-    }));
+    // Salva data/ora sospensione su GitHub (visibile anche al titolare)
+    const at = new Date().toLocaleString('it-IT', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    localStorage.setItem('kp_sospeso_info_' + modalTicket, JSON.stringify({data, ora, at}));
+    saveKpNote(modalTicket, {data, ora, at});
     status.style.color = 'var(--lavorazione)';
     status.textContent = '✅ Sospensione avviata! (~2 min)';
     setTimeout(closeModal, 2000);
@@ -664,7 +699,10 @@ async function loadData() {
 
   const src = SOURCES[currentTab];
   buildProvinceBar(src.province);
-  const data = await ghRead(src.repo, 'interacta_data.json');
+  const [data] = await Promise.all([
+    ghRead(src.repo, 'interacta_data.json'),
+    loadKpNotes()
+  ]);
   cachedData = data;
   renderData(data);
 }
