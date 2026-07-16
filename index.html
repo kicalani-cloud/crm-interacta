@@ -902,22 +902,24 @@ async function aggiorna() {
 
   const src = SOURCES[currentTab];
 
-  // Salva il last_update attuale prima di triggerare
+  // Trigger fetch su ENTRAMBI i bot in parallelo
+  await Promise.all(SOURCES.map(s =>
+    fetch(`https://api.github.com/repos/${s.repo}/actions/workflows/fetch.yml/dispatches`, {
+      method: 'POST',
+      headers: { Authorization: `token ${GH_ACTIONS_TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ref: 'main' })
+    })
+  ));
+
+  // Aspetta che i dati del tab corrente si aggiornino
   const dataPrima = await ghRead(src.repo, 'interacta_data.json');
   const updatePrima = dataPrima ? dataPrima.last_update : null;
-
-  await fetch(`https://api.github.com/repos/${src.repo}/actions/workflows/fetch.yml/dispatches`, {
-    method: 'POST',
-    headers: { Authorization: `token ${GH_ACTIONS_TOKEN}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ref: 'main' })
-  });
 
   let secondi = 0;
   const interval = setInterval(async () => {
     secondi++;
     btn.innerHTML = `<span class="spinner"></span> ${secondi}s…`;
 
-    // Ogni 10 secondi controlla se i dati sono cambiati
     if (secondi % 10 === 0) {
       const dataNuova = await ghRead(src.repo, 'interacta_data.json');
       if (dataNuova && dataNuova.last_update !== updatePrima) {
@@ -930,7 +932,6 @@ async function aggiorna() {
       }
     }
 
-    // Fallback: dopo 120 secondi ricarica comunque
     if (secondi >= 120) {
       clearInterval(interval);
       loadData();
