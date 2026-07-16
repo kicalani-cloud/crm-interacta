@@ -295,10 +295,10 @@
   .note-sospeso {
     margin-top: 8px;
     width: 100%;
-    min-height: 60px;
+    min-height: 70px;
     padding: 8px 10px;
     border: 1.5px solid #f57c00;
-    border-radius: 8px;
+    border-radius: 8px 8px 0 0;
     font-size: 0.82rem;
     font-family: inherit;
     resize: vertical;
@@ -306,7 +306,21 @@
     color: var(--text);
   }
   .note-sospeso:focus { outline: none; border-color: #e65100; background: #fff; }
-  .note-saved { font-size: 0.72rem; color: var(--lavorazione); margin-top: 3px; display: none; }
+  .btn-salva-nota {
+    width: 100%;
+    padding: 8px;
+    background: #f57c00;
+    color: white;
+    border: none;
+    border-radius: 0 0 8px 8px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .btn-salva-nota:hover { background: #e65100; }
+  .btn-salva-nota:disabled { background: #aaa; cursor: not-allowed; }
+  .note-saved { font-size: 0.72rem; color: var(--lavorazione); margin-top: 4px; text-align: center; display: none; }
 
   /* Bottom nav — visibile solo su kp.html */
   #bottom-nav {
@@ -607,7 +621,10 @@ function card(p, stato) {
         <div><strong>📅 App.to:</strong> ${info.data} alle ${info.ora}</div>
       </div>` : '';
     const saved = gh.note ?? (localStorage.getItem('kp_note_' + p.ticket) || '');
-    return `${infoHtml}<textarea class="note-sospeso" id="note-${p.ticket}" placeholder="✏️ Note sul lavoro svolto…" onchange="saveNote('${p.ticket}')" oninput="saveNote('${p.ticket}')">${saved}</textarea><div class="note-saved" id="note-saved-${p.ticket}">✓ Salvato</div>`;
+    return `${infoHtml}
+      <textarea class="note-sospeso" id="note-${p.ticket}" placeholder="✏️ Note sul lavoro svolto…">${saved}</textarea>
+      <button class="btn-salva-nota" id="btn-nota-${p.ticket}" onclick="saveNote('${p.ticket}')">💾 Salva Nota</button>
+      <div class="note-saved" id="note-saved-${p.ticket}">✓ Nota salvata — visibile anche al titolare</div>`;
   })() : '';
   return `
     <div class="card ${stato}">
@@ -627,16 +644,15 @@ function card(p, stato) {
 }
 
 
-const _noteTimers = {};
-function saveNote(ticket) {
-  clearTimeout(_noteTimers[ticket]);
-  _noteTimers[ticket] = setTimeout(async () => {
-    const val = document.getElementById('note-' + ticket)?.value || '';
-    localStorage.setItem('kp_note_' + ticket, val);
-    await saveKpNote(ticket, {note: val});
-    const el = document.getElementById('note-saved-' + ticket);
-    if (el) { el.style.display = 'block'; setTimeout(() => el.style.display = 'none', 1500); }
-  }, 800);
+async function saveNote(ticket) {
+  const val = document.getElementById('note-' + ticket)?.value || '';
+  const btn = document.getElementById('btn-nota-' + ticket);
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Salvataggio…'; }
+  localStorage.setItem('kp_note_' + ticket, val);
+  await saveKpNote(ticket, {note: val});
+  const el = document.getElementById('note-saved-' + ticket);
+  if (el) { el.style.display = 'block'; setTimeout(() => el.style.display = 'none', 3000); }
+  if (btn) { btn.disabled = false; btn.textContent = '💾 Salva Nota'; }
 }
 
 let modalTicket = null;
