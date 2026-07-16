@@ -448,6 +448,21 @@ let currentProv = 'TUTTE';
 let cachedData = null;
 let userLat = null, userLon = null;
 const geoCache = {};
+let _geoLastCall = 0;
+async function geocodeThrottled(indirizzo) {
+  if (!indirizzo) return null;
+  if (geoCache[indirizzo]) return geoCache[indirizzo];
+  const now = Date.now();
+  const wait = Math.max(0, 1100 - (now - _geoLastCall));
+  if (wait > 0) await new Promise(r => setTimeout(r, wait));
+  _geoLastCall = Date.now();
+  try {
+    const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(indirizzo + ', Italia')}&format=json&limit=1`, { headers: { 'Accept-Language': 'it' } });
+    const d = await r.json();
+    if (d[0]) { const c = { lat: parseFloat(d[0].lat), lon: parseFloat(d[0].lon) }; geoCache[indirizzo] = c; return c; }
+  } catch(e) {}
+  return null;
+}
 
 function haversine(lat1, lon1, lat2, lon2) {
   const R = 6371;
@@ -476,11 +491,12 @@ async function geocode(indirizzo) {
 
 async function sortByDistance(tickets) {
   if (!userLat) return tickets;
-  const withCoords = await Promise.all(tickets.map(async p => {
-    const coords = await geocode(p.indirizzo);
+  const withCoords = [];
+  for (const p of tickets) {
+    const coords = await geocodeThrottled(p.indirizzo);
     const dist = coords ? haversine(userLat, userLon, coords.lat, coords.lon) : 9999;
-    return { ...p, _dist: dist };
-  }));
+    withCoords.push({ ...p, _dist: dist });
+  }
   return withCoords.sort((a, b) => a._dist - b._dist);
 }
 
