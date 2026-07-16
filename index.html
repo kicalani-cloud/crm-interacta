@@ -356,7 +356,7 @@
   .copied-msg { color: var(--lavorazione); font-weight: 600; text-align: center; margin-top: 10px; }
 
   @media (max-width: 900px) {
-    .board { grid-template-columns: 1fr; padding: 12px; gap: 12px; }
+    .board { grid-template-columns: 1fr; padding: 12px; gap: 12px; padding-bottom: 80px; }
     header { padding: 10px 16px; }
     header h1 { font-size: 1.1rem; }
     .topbar { padding: 10px 12px; gap: 8px; }
@@ -369,6 +369,40 @@
     .card-row { font-size: 0.8rem; }
     .modal { width: calc(100vw - 40px); }
   }
+
+  #bottom-nav-titolare {
+    display: none;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: 64px;
+    background: white;
+    border-top: 1px solid #ddd;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+    z-index: 100;
+  }
+  @media (max-width: 900px) {
+    #bottom-nav-titolare { display: flex; }
+  }
+  .bnav-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: #999;
+    padding: 6px 0;
+    transition: color 0.2s;
+  }
+  .bnav-btn .bnav-icon { font-size: 1.4rem; }
+  .bnav-btn.active { color: var(--assegnato); }
+  .bnav-btn.active[data-col="lavorazione"] { color: var(--lavorazione); }
+  .bnav-btn.active[data-col="sospeso"] { color: var(--sospeso); }
 </style>
 </head>
 <body>
@@ -464,6 +498,18 @@
     <div id="modal-status" style="margin-top:10px;font-size:0.82rem;color:var(--muted);text-align:center;"></div>
   </div>
 </div>
+
+<nav id="bottom-nav-titolare">
+  <button class="bnav-btn active" data-col="assegnato" onclick="bnavTitolare('assegnato')">
+    <span class="bnav-icon">📋</span>Assegnati
+  </button>
+  <button class="bnav-btn" data-col="lavorazione" onclick="bnavTitolare('lavorazione')">
+    <span class="bnav-icon">🔧</span>In Lavoraz.
+  </button>
+  <button class="bnav-btn" data-col="sospeso" onclick="bnavTitolare('sospeso')">
+    <span class="bnav-icon">⏸</span>Sospesi
+  </button>
+</nav>
 
 <div class="board" id="board">
   <div class="column">
@@ -587,6 +633,8 @@ async function renderData(data) {
   const colL = document.getElementById('col-lavorazione');
   colL.innerHTML = lavorazione.length ? lavorazione.map(p => card(p, 'lavorazione')).join('') : '<div class="empty">Nessun ticket in lavorazione</div>';
   document.getElementById('cnt-lavorazione').textContent = lavorazione.length;
+
+  if (window.innerWidth <= 900) bnavTitolare(_bnavTitolare);
 }
 
 async function ghRead(repo, file) {
@@ -718,6 +766,25 @@ function copiaTabella() {
   });
 }
 // ── Copia lista sospesi (Nome/OLO/vuoto) ────────────────────────
+let _bnavTitolare = 'assegnato';
+function bnavTitolare(col) {
+  _bnavTitolare = col;
+  const cols = ['assegnato','lavorazione','sospeso'];
+  cols.forEach(c => {
+    document.getElementById('col-' + c).closest('.column').style.display = c === col ? '' : 'none';
+  });
+  document.querySelectorAll('#bottom-nav-titolare .bnav-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.col === col);
+  });
+  // Aggiorna badge nelle icone
+  cols.forEach(c => {
+    const cnt = document.getElementById('cnt-' + c).textContent;
+    const btn = document.querySelector(`#bottom-nav-titolare .bnav-btn[data-col="${c}"] .bnav-icon`);
+    const icons = {assegnato:'📋', lavorazione:'🔧', sospeso:'⏸'};
+    if (btn) btn.textContent = (cnt && cnt !== '0') ? icons[c] + ' ' + cnt : icons[c];
+  });
+}
+
 function saveLavNote(ticket) {
   const key = 'lav_note_' + SOURCES[currentTab].label + '_' + ticket;
   const val = document.getElementById('lnote-' + ticket)?.value || '';
