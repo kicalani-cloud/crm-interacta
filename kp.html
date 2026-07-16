@@ -291,6 +291,23 @@
     .modal { width: calc(100vw - 40px); }
   }
 
+  /* Note sospesi */
+  .note-sospeso {
+    margin-top: 8px;
+    width: 100%;
+    min-height: 60px;
+    padding: 8px 10px;
+    border: 1.5px solid #f57c00;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-family: inherit;
+    resize: vertical;
+    background: #fff8f0;
+    color: var(--text);
+  }
+  .note-sospeso:focus { outline: none; border-color: #e65100; background: #fff; }
+  .note-saved { font-size: 0.72rem; color: var(--lavorazione); margin-top: 3px; display: none; }
+
   /* Bottom nav — visibile solo su kp.html */
   #bottom-nav {
     display: none;
@@ -547,6 +564,10 @@ function card(p, stato) {
   const btnSospendi = stato === 'assegnato'
     ? `<button class="btn-sospendi" onclick="openModal('${p.ticket}')">⏸ Sospendi</button>`
     : '';
+  const noteField = stato === 'sospeso' ? (() => {
+    const saved = localStorage.getItem('kp_note_' + p.ticket) || '';
+    return `<textarea class="note-sospeso" id="note-${p.ticket}" placeholder="✏️ Note…" onchange="saveNote('${p.ticket}')" oninput="saveNote('${p.ticket}')">${saved}</textarea><div class="note-saved" id="note-saved-${p.ticket}">✓ Salvato</div>`;
+  })() : '';
   return `
     <div class="card ${stato}">
       <div class="card-ticket">
@@ -559,10 +580,22 @@ function card(p, stato) {
       <div class="card-row"><span class="lbl">Indirizzo</span><span class="val">${p.indirizzo || '—'}</span></div>
       <div class="card-row"><span class="lbl">Tel</span><span class="val">${tel}</span></div>
       <div class="card-row"><span class="lbl">Data</span><span class="val">${p.data_seg || '—'}</span></div>
+      ${noteField}
       ${btnSospendi}
     </div>`;
 }
 
+
+const _noteTimers = {};
+function saveNote(ticket) {
+  clearTimeout(_noteTimers[ticket]);
+  _noteTimers[ticket] = setTimeout(() => {
+    const val = document.getElementById('note-' + ticket)?.value || '';
+    localStorage.setItem('kp_note_' + ticket, val);
+    const el = document.getElementById('note-saved-' + ticket);
+    if (el) { el.style.display = 'block'; setTimeout(() => el.style.display = 'none', 1500); }
+  }, 600);
+}
 
 let modalTicket = null;
 
