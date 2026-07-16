@@ -189,6 +189,36 @@
   }
   .btn-riprendi:hover { opacity: 1; }
 
+  .note-lavorazione {
+    margin-top: 8px;
+    width: 100%;
+    min-height: 60px;
+    padding: 8px 10px;
+    border: 1.5px solid var(--lavorazione);
+    border-radius: 8px 8px 0 0;
+    font-size: 0.82rem;
+    font-family: inherit;
+    resize: vertical;
+    background: #f1f8f1;
+    color: var(--text);
+  }
+  .note-lavorazione:focus { outline: none; border-color: #1b5e20; background: #fff; }
+  .btn-salva-nota-lav {
+    width: 100%;
+    padding: 7px;
+    background: var(--lavorazione);
+    color: white;
+    border: none;
+    border-radius: 0 0 8px 8px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .btn-salva-nota-lav:hover { background: #1b5e20; }
+  .btn-salva-nota-lav:disabled { background: #aaa; cursor: not-allowed; }
+  .note-lav-saved { font-size: 0.72rem; color: var(--lavorazione); margin-top: 4px; text-align: center; display: none; }
+
   .btn-tutti-lav {
     margin-left: 8px;
     background: var(--lavorazione);
@@ -584,6 +614,13 @@ function card(p, stato) {
   const btnRiprendi = stato === 'sospeso'
     ? `<button class="btn-riprendi" onclick="openRiprendi('${p.ticket}')">🔓 Desospendi</button>`
     : '';
+  const noteLav = stato === 'lavorazione' ? (() => {
+    const key = 'lav_note_' + SOURCES[currentTab].label + '_' + p.ticket;
+    const saved = localStorage.getItem(key) || '';
+    return `<textarea class="note-lavorazione" id="lnote-${p.ticket}" placeholder="✏️ Motivazione / Note…">${saved}</textarea>
+      <button class="btn-salva-nota-lav" id="btn-lnota-${p.ticket}" onclick="saveLavNote('${p.ticket}')">💾 Salva Nota</button>
+      <div class="note-lav-saved" id="lnote-saved-${p.ticket}">✓ Salvato</div>`;
+  })() : '';
   const kpInfo = stato === 'sospeso' && _kpNotesTitolare ? (() => {
     const n = _kpNotesTitolare[p.ticket];
     if (!n) return '';
@@ -604,6 +641,7 @@ function card(p, stato) {
       <div class="card-row"><span class="lbl">Tel</span><span class="val">${tel}</span></div>
       <div class="card-row"><span class="lbl">Data</span><span class="val">${p.data_seg || '—'}</span></div>
       ${kpInfo}
+      ${noteLav}
       ${btnSospendi}
       ${btnRiprendi}
     </div>`;
@@ -672,6 +710,17 @@ function copiaTabella() {
   });
 }
 // ── Copia lista sospesi (Nome/OLO/vuoto) ────────────────────────
+function saveLavNote(ticket) {
+  const key = 'lav_note_' + SOURCES[currentTab].label + '_' + ticket;
+  const val = document.getElementById('lnote-' + ticket)?.value || '';
+  const btn = document.getElementById('btn-lnota-' + ticket);
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Salvataggio…'; }
+  localStorage.setItem(key, val);
+  const el = document.getElementById('lnote-saved-' + ticket);
+  if (el) { el.style.display = 'block'; setTimeout(() => el.style.display = 'none', 2000); }
+  if (btn) { btn.disabled = false; btn.textContent = '💾 Salva Nota'; }
+}
+
 function openCopiaS() {
   const src = SOURCES[currentTab];
   const checks = document.getElementById('prov-checks-sos');
@@ -701,12 +750,16 @@ function copiaTabellaS() {
     </tr>
   </thead>
   <tbody>
-    ${righe.map((p, i) => `
+    ${righe.map((p, i) => {
+      const key = 'lav_note_' + SOURCES[currentTab].label + '_' + p.ticket;
+      const nota = localStorage.getItem(key) || '';
+      return `
     <tr style="background:${i % 2 === 0 ? '#ffffff' : '#fff3e0'};">
       <td style="padding:8px 12px;border:1px solid #ccc;">${p.cliente || '—'}</td>
       <td style="padding:8px 12px;border:1px solid #ccc;">${p.ticket_olo || '—'}</td>
-      <td style="padding:8px 12px;border:1px solid #ccc;">&nbsp;</td>
-    </tr>`).join('')}
+      <td style="padding:8px 12px;border:1px solid #ccc;">${nota || '&nbsp;'}</td>
+    </tr>`;
+    }).join('')}
   </tbody>
 </table>`;
 
