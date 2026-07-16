@@ -174,6 +174,22 @@
   }
   .btn-sospendi:hover { opacity: 1; }
 
+  .note-sospeso {
+    margin-top: 8px; width: 100%; min-height: 70px; padding: 8px 10px;
+    border: 1.5px solid #f57c00; border-radius: 8px 8px 0 0;
+    font-size: 0.82rem; font-family: inherit; resize: vertical;
+    background: #fff8f0; color: var(--text);
+  }
+  .note-sospeso:focus { outline: none; border-color: #e65100; background: #fff; }
+  .btn-salva-nota {
+    width: 100%; padding: 8px; background: #f57c00; color: white;
+    border: none; border-radius: 0 0 8px 8px; font-size: 0.82rem;
+    font-weight: 700; cursor: pointer; transition: background 0.2s;
+  }
+  .btn-salva-nota:hover { background: #e65100; }
+  .btn-salva-nota:disabled { background: #aaa; cursor: not-allowed; }
+  .note-saved { font-size: 0.72rem; color: var(--lavorazione); margin-top: 4px; text-align: center; display: none; }
+
   .modal-overlay {
     display: none;
     position: fixed; inset: 0;
@@ -493,6 +509,49 @@ async function ghRead(repo, file) {
   return JSON.parse(atob(d.content.replace(/\n/g, '')));
 }
 
+async function ghWrite(repo, file, content) {
+  const r0 = await fetch(`https://api.github.com/repos/${repo}/contents/${file}`, {
+    headers: { Authorization: `token ${GH_TOKEN}` }
+  });
+  const sha = r0.ok ? (await r0.json()).sha : undefined;
+  const body = { message: 'update ' + file, content: btoa(unescape(encodeURIComponent(JSON.stringify(content, null, 2)))), ...(sha ? {sha} : {}) };
+  await fetch(`https://api.github.com/repos/${repo}/contents/${file}`, {
+    method: 'PUT',
+    headers: { Authorization: `token ${GH_TOKEN}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+}
+
+const LIFE_NOTES_REPO = 'kicalani-cloud/interacta-bot';
+const LIFE_NOTES_FILE = 'life_sospesi_notes.json';
+let _lifeNotes = null;
+
+async function loadLifeNotes() {
+  if (_lifeNotes) return _lifeNotes;
+  _lifeNotes = await ghRead(LIFE_NOTES_REPO, LIFE_NOTES_FILE) || {};
+  return _lifeNotes;
+}
+
+async function saveLifeNote(ticket, fields) {
+  const notes = await loadLifeNotes();
+  notes[ticket] = { ...(notes[ticket] || {}), ...fields };
+  _lifeNotes = notes;
+  localStorage.setItem('life_sospeso_info_' + ticket, JSON.stringify(notes[ticket]));
+  localStorage.setItem('life_note_' + ticket, notes[ticket].note || '');
+  await ghWrite(LIFE_NOTES_REPO, LIFE_NOTES_FILE, notes);
+}
+
+async function saveNote(ticket) {
+  const val = document.getElementById('note-' + ticket)?.value || '';
+  const btn = document.getElementById('btn-nota-' + ticket);
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Salvataggio…'; }
+  localStorage.setItem('life_note_' + ticket, val);
+  await saveLifeNote(ticket, {note: val});
+  const el = document.getElementById('note-saved-' + ticket);
+  if (el) { el.style.display = 'block'; setTimeout(() => el.style.display = 'none', 3000); }
+  if (btn) { btn.disabled = false; btn.textContent = '💾 Salva Nota'; }
+}
+
 function card(p, stato) {
   const zona = p.centrale || p.zona || '—';
   const tel = p.telefono ? `<a href="tel:${p.telefono}">${p.telefono}</a>` : '—';
@@ -501,6 +560,20 @@ function card(p, stato) {
   const btnSospendi = stato === 'assegnato'
     ? `<button class="btn-sospendi" onclick="openModal('${p.ticket}')">⏸ Sospendi</button>`
     : '';
+  const noteField = stato === 'sospeso' ? (() => {
+    const gh = (_lifeNotes || {})[p.ticket] || {};
+    const info = gh.at ? gh : JSON.parse(localStorage.getItem('life_sospeso_info_' + p.ticket) || 'null');
+    const infoHtml = info && info.at ? `
+      <div style="background:#fff3e0;border-left:3px solid var(--sospeso);padding:6px 10px;border-radius:6px;margin-top:8px;font-size:0.78rem;color:#555;">
+        <div><strong>⏸ Sospeso il:</strong> ${info.at}</div>
+        <div><strong>📅 App.to:</strong> ${info.data} alle ${info.ora}</div>
+      </div>` : '';
+    const saved = gh.note ?? (localStorage.getItem('life_note_' + p.ticket) || '');
+    return `${infoHtml}
+      <textarea class="note-sospeso" id="note-${p.ticket}" placeholder="✏️ Note sul lavoro svolto…">${saved}</textarea>
+      <button class="btn-salva-nota" id="btn-nota-${p.ticket}" onclick="saveNote('${p.ticket}')">💾 Salva Nota</button>
+      <div class="note-saved" id="note-saved-${p.ticket}">✓ Nota salvata — visibile anche al titolare</div>`;
+  })() : '';
   return `
     <div class="card ${stato}">
       <div class="card-ticket">
@@ -513,6 +586,7 @@ function card(p, stato) {
       <div class="card-row"><span class="lbl">Indirizzo</span><span class="val">${p.indirizzo || '—'}</span></div>
       <div class="card-row"><span class="lbl">Tel</span><span class="val">${tel}</span></div>
       <div class="card-row"><span class="lbl">Data</span><span class="val">${p.data_seg || '—'}</span></div>
+      ${noteField}
       ${btnSospendi}
     </div>`;
 }
@@ -557,6 +631,9 @@ async function conferma() {
   });
 
   if (r.status === 204) {
+    const at = new Date().toLocaleString('it-IT', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    localStorage.setItem('life_sospeso_info_' + modalTicket, JSON.stringify({data, ora, at}));
+    saveLifeNote(modalTicket, {data, ora, at});
     status.style.color = 'var(--lavorazione)';
     status.textContent = '✅ Sospensione avviata! (~2 min)';
     setTimeout(closeModal, 2000);
@@ -574,7 +651,10 @@ async function loadData() {
 
   const src = SOURCES[currentTab];
   buildProvinceBar(src.province);
-  const data = await ghRead(src.repo, 'interacta_data.json');
+  const [data] = await Promise.all([
+    ghRead(src.repo, 'interacta_data.json'),
+    loadLifeNotes()
+  ]);
   cachedData = data;
   renderData(data);
 }

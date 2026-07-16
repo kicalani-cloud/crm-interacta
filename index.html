@@ -603,6 +603,11 @@ async function loadKpNotesTitolare() {
   _kpNotesTitolare = await ghRead('kicalani-cloud/interacta-bot2', 'kp_sospesi_notes.json') || {};
 }
 
+let _lifeNotesTitolare = null;
+async function loadLifeNotesTitolare() {
+  _lifeNotesTitolare = await ghRead('kicalani-cloud/interacta-bot', 'life_sospesi_notes.json') || {};
+}
+
 function card(p, stato) {
   const zona = p.centrale || p.zona || '—';
   const tel = p.telefono ? `<a href="tel:${p.telefono}">${p.telefono}</a>` : '—';
@@ -621,8 +626,11 @@ function card(p, stato) {
       <button class="btn-salva-nota-lav" id="btn-lnota-${p.ticket}" onclick="saveLavNote('${p.ticket}')">💾 Salva Nota</button>
       <div class="note-lav-saved" id="lnote-saved-${p.ticket}">✓ Salvato</div>`;
   })() : '';
-  const kpInfo = stato === 'sospeso' && _kpNotesTitolare ? (() => {
-    const n = _kpNotesTitolare[p.ticket];
+  const kpInfo = stato === 'sospeso' ? (() => {
+    const src = SOURCES[currentTab];
+    const notesMap = src.label === 'KP Service' ? _kpNotesTitolare : _lifeNotesTitolare;
+    if (!notesMap) return '';
+    const n = notesMap[p.ticket];
     if (!n) return '';
     const infoHtml = n.at ? `<div style="background:#fff3e0;border-left:3px solid var(--sospeso);padding:6px 10px;border-radius:6px;margin-top:8px;font-size:0.78rem;color:#555;"><div><strong>⏸ Sospeso il:</strong> ${n.at}</div><div><strong>📅 App.to:</strong> ${n.data} alle ${n.ora}</div></div>` : '';
     const noteHtml = n.note ? `<div style="background:#f5f5f5;border-left:3px solid #999;padding:6px 10px;border-radius:6px;margin-top:6px;font-size:0.78rem;color:#444;white-space:pre-wrap;"><strong>📝 Note tecnico:</strong><br>${n.note}</div>` : '';
@@ -890,6 +898,7 @@ async function loadData() {
   buildProvinceBar(src.province);
   const fetches = [ghRead(src.repo, 'interacta_data.json')];
   if (src.label === 'KP Service') fetches.push(loadKpNotesTitolare());
+  else fetches.push(loadLifeNotesTitolare());
   const [data] = await Promise.all(fetches);
   cachedData = data;
   renderData(data);
