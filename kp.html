@@ -624,7 +624,7 @@ function card(p, stato) {
     return `${infoHtml}
       <textarea class="note-sospeso" id="note-${p.ticket}" placeholder="✏️ Note sul lavoro svolto…">${saved}</textarea>
       <button class="btn-salva-nota" id="btn-nota-${p.ticket}" onclick="saveNote('${p.ticket}')">💾 Salva Nota</button>
-      <div class="note-saved" id="note-saved-${p.ticket}">✓ Nota salvata — visibile anche al titolare</div>`;
+      <div class="note-saved" id="note-saved-${p.ticket}">✓ Nota salvata</div>`;
   })() : '';
   return `
     <div class="card ${stato}">
