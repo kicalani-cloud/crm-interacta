@@ -669,7 +669,10 @@ function card(p, stato) {
     : '';
   const noteLav = stato === 'lavorazione' ? (() => {
     const key = 'lav_note_' + SOURCES[currentTab].label + '_' + p.ticket;
-    const saved = localStorage.getItem(key) || '';
+    const src = SOURCES[currentTab];
+    const notesMap = src.label === 'KP Service' ? _kpNotesTitolare : _lifeNotesTitolare;
+    const sospNote = notesMap && notesMap[p.ticket] ? (notesMap[p.ticket].note || '') : '';
+    const saved = localStorage.getItem(key) || sospNote;
     return `<textarea class="note-lavorazione" id="lnote-${p.ticket}" placeholder="✏️ Motivazione / Note…">${saved}</textarea>
       <button class="btn-salva-nota-lav" id="btn-lnota-${p.ticket}" onclick="saveLavNote('${p.ticket}')">💾 Salva Nota</button>
       <div class="note-lav-saved" id="lnote-saved-${p.ticket}">✓ Salvato</div>`;
