@@ -830,7 +830,10 @@ function copiaTabellaS() {
   <tbody>
     ${righe.map((p, i) => {
       const key = 'lav_note_' + SOURCES[currentTab].label + '_' + p.ticket;
-      const nota = localStorage.getItem(key) || '';
+      const src = SOURCES[currentTab];
+      const notesMap = src.label === 'KP Service' ? _kpNotesTitolare : _lifeNotesTitolare;
+      const sospNote = notesMap && notesMap[p.ticket] ? (notesMap[p.ticket].note || '') : '';
+      const nota = localStorage.getItem(key) || sospNote || document.getElementById('lnote-' + p.ticket)?.value || '';
       return `
     <tr style="background:${i % 2 === 0 ? '#ffffff' : '#fff3e0'};">
       <td style="padding:8px 12px;border:1px solid #ccc;">${p.cliente || '—'}</td>
