@@ -850,7 +850,13 @@ function copiaTabellaS() {
     document.getElementById('copied-msg-sos').style.display = 'block';
     setTimeout(closeCopiaS, 2000);
   }).catch(() => {
-    const testo = righe.map(p => `${p.cliente} | ${p.ticket_olo} | `).join('\n');
+    const testo = righe.map(p => {
+      const key = 'lav_note_' + SOURCES[currentTab].label + '_' + p.ticket;
+      const src2 = SOURCES[currentTab];
+      const nm = src2.label === 'KP Service' ? _kpNotesTitolare : _lifeNotesTitolare;
+      const n = localStorage.getItem(key) || (nm && nm[p.ticket] ? nm[p.ticket].note || '' : '') || document.getElementById('lnote-' + p.ticket)?.value || '';
+      return `${p.cliente} | ${p.ticket_olo} | ${n}`;
+    }).join('\n');
     navigator.clipboard.writeText(testo);
     document.getElementById('copied-msg-sos').style.display = 'block';
     setTimeout(closeCopiaS, 2000);
