@@ -608,7 +608,13 @@ function filterProv(prov) {
 }
 
 async function renderData(data) {
-  if (!data) return;
+  if (!data) {
+    ['assegnato','lavorazione','sospeso'].forEach(c => {
+      const el = document.getElementById(`col-${c}`);
+      if (el && el.innerHTML.includes('Caricamento')) el.innerHTML = '<div class="empty">⚠️ Errore caricamento — riprova</div>';
+    });
+    return;
+  }
   const filter = p => currentProv === 'TUTTE' || (p.centrale || '') === currentProv;
 
   let assegnati   = (data.posts       || []).filter(filter);
