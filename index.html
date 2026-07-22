@@ -638,12 +638,17 @@ async function renderData(data) {
 }
 
 async function ghRead(repo, file) {
-  const r = await fetch(`https://api.github.com/repos/${repo}/contents/${file}`, {
-    headers: { Authorization: `token ${GH_TOKEN}` }
-  });
-  if (!r.ok) return null;
-  const d = await r.json();
-  return JSON.parse(atob(d.content.replace(/\n/g, '')));
+  try {
+    const ctrl = new AbortController();
+    const tid = setTimeout(() => ctrl.abort(), 10000);
+    const r = await fetch(`https://api.github.com/repos/${repo}/contents/${file}`, {
+      headers: { Authorization: `token ${GH_TOKEN}` }, signal: ctrl.signal
+    });
+    clearTimeout(tid);
+    if (!r.ok) return null;
+    const d = await r.json();
+    return JSON.parse(atob(d.content.replace(/\n/g, '')));
+  } catch(e) { return null; }
 }
 
 let _kpNotesTitolare = null;
